@@ -73,5 +73,9 @@ The project now keeps its governance and technical decisions in version-controll
 - [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) — current foundation and target system architecture.
 - [Delivery Roadmap](docs/DELIVERY_ROADMAP.md) — phased implementation plan and release gates.
 - [Security and Governance](docs/SECURITY_GOVERNANCE.md) — access control, privacy, audit history and release security.
+- [Data Model and Permission Matrix](docs/DATA_MODEL_AND_PERMISSION_MATRIX.md) — proposed collections and role boundaries.
+- [Firestore Field Schema](docs/FIRESTORE_FIELD_SCHEMA.md) — version 1 field-level data contract.
+- [Firestore Rules](firestore.rules) — tracked owner-only security baseline; not automatically deployed to Firebase.
+- [Firebase Configuration](firebase.json) — Firebase CLI rules and index file paths.
 
 Read these documents before changing organisational structure, permissions, data models or platform architecture. Update them whenever an approved decision changes.
