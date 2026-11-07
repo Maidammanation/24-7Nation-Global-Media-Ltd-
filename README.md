@@ -63,3 +63,15 @@ The homepage presents the six official divisions. The mobile app and member port
 - Calls must not be recorded by default. Any future recording feature requires explicit consent, clear notice and a lawful retention policy.
 
 All AI, dashboard, chat, voice and video features described above are planned. They are not live until implemented, tested and deployed.
+
+
+## Organisation and engineering handbook
+
+The project now keeps its governance and technical decisions in version-controlled documents:
+
+- [Organisation Charter](docs/ORGANISATION_CHARTER.md) — purpose, six pillars, roles and operating principles.
+- [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) — current foundation and target system architecture.
+- [Delivery Roadmap](docs/DELIVERY_ROADMAP.md) — phased implementation plan and release gates.
+- [Security and Governance](docs/SECURITY_GOVERNANCE.md) — access control, privacy, audit history and release security.
+
+Read these documents before changing organisational structure, permissions, data models or platform architecture. Update them whenever an approved decision changes.
