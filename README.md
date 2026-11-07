@@ -81,3 +81,14 @@ The project now keeps its governance and technical decisions in version-controll
 - [GitHub Actions Security Workflow](.github/workflows/firestore-rules-tests.yml) — runs the rules tests on relevant changes.
 
 Read these documents before changing organisational structure, permissions, data models or platform architecture. Update them whenever an approved decision changes.
+
+
+## Secure backend foundation
+
+- [Backend Setup and API Reference](docs/BACKEND_SETUP.md) — owner-only role assignment and read-only audit history endpoints, required server secrets, and deployment checks.
+- [Role Assignment API](api/admin/role-assignments.js) — owner-only create/list/revoke operations; assignments do not yet grant staff data access.
+- [Audit Events API](api/admin/audit-events.js) — owner-only read access to the latest audit events.
+- [Backend Validation Tests](tests/backend/validation.test.js) — input validation tests for role and department assignments.
+- [Backend CI Workflow](.github/workflows/backend-validation-tests.yml) — runs backend validation tests on relevant changes.
+
+The backend requires Vercel environment variables documented in BACKEND_SETUP.md. No service-account key is committed. The Firestore owner-only rules remain unchanged.
