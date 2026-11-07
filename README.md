@@ -77,5 +77,7 @@ The project now keeps its governance and technical decisions in version-controll
 - [Firestore Field Schema](docs/FIRESTORE_FIELD_SCHEMA.md) — version 1 field-level data contract.
 - [Firestore Rules](firestore.rules) — tracked owner-only security baseline; not automatically deployed to Firebase.
 - [Firebase Configuration](firebase.json) — Firebase CLI rules and index file paths.
+- [Firestore Rules Tests](tests/firestore-rules/firestore.rules.test.js) — emulator tests for owner, signed-in non-owner and unauthenticated access.
+- [GitHub Actions Security Workflow](.github/workflows/firestore-rules-tests.yml) — runs the rules tests on relevant changes.
 
 Read these documents before changing organisational structure, permissions, data models or platform architecture. Update them whenever an approved decision changes.
