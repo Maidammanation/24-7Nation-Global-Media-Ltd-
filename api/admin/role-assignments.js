@@ -39,56 +39,58 @@ module.exports = async function handler(req, res) {
         throw error;
       }
 
-      const existing = await assignments.where("uid", "==", input.uid).limit(100).get();
-      const duplicate = existing.docs.some((doc) => {
-        const data = doc.data();
-        return data.status === "active" &&
-          data.role === input.role &&
-          JSON.stringify([...(data.departmentCodes || [])].sort()) ===
-            JSON.stringify([...input.departmentCodes].sort());
-      });
-
-      if (duplicate) {
-        const error = new Error("An active assignment with the same role and scope already exists.");
-        error.code = "CONFLICT";
-        error.publicMessage = error.message;
-        throw error;
-      }
-
       const assignmentRef = assignments.doc();
       const auditRef = auditEvents.doc();
-      const batch = db.batch();
 
-      batch.create(assignmentRef, {
-        uid: input.uid,
-        role: input.role,
-        departmentCodes: input.departmentCodes,
-        permissions: [],
-        status: "active",
-        assignedByUid: actor.uid,
-        assignedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        reason: input.reason
-      });
+      await db.runTransaction(async (transaction) => {
+        const existing = await transaction.get(
+          assignments.where("uid", "==", input.uid).limit(100)
+        );
+        const duplicate = existing.docs.some((doc) => {
+          const data = doc.data();
+          return data.status === "active" &&
+            data.role === input.role &&
+            JSON.stringify([...(data.departmentCodes || [])].sort()) ===
+              JSON.stringify([...input.departmentCodes].sort());
+        });
 
-      batch.create(auditRef, {
-        actorUid: actor.uid,
-        actorRoleAtTime: "owner",
-        action: "role_assignment.created",
-        resourceType: "roleAssignment",
-        resourceId: assignmentRef.id,
-        outcome: "success",
-        occurredAt: FieldValue.serverTimestamp(),
-        reason: input.reason,
-        requestId,
-        metadata: {
-          targetUid: input.uid,
-          role: input.role,
-          departmentCodes: input.departmentCodes
+        if (duplicate) {
+          const error = new Error("An active assignment with the same role and scope already exists.");
+          error.code = "CONFLICT";
+          error.publicMessage = error.message;
+          throw error;
         }
+
+        transaction.create(assignmentRef, {
+          uid: input.uid,
+          role: input.role,
+          departmentCodes: input.departmentCodes,
+          permissions: [],
+          status: "active",
+          assignedByUid: actor.uid,
+          assignedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          reason: input.reason
+        });
+
+        transaction.create(auditRef, {
+          actorUid: actor.uid,
+          actorRoleAtTime: "owner",
+          action: "role_assignment.created",
+          resourceType: "roleAssignment",
+          resourceId: assignmentRef.id,
+          outcome: "success",
+          occurredAt: FieldValue.serverTimestamp(),
+          reason: input.reason,
+          requestId,
+          metadata: {
+            targetUid: input.uid,
+            role: input.role,
+            departmentCodes: input.departmentCodes
+          }
+        });
       });
 
-      await batch.commit();
       return sendJson(res, 201, {
         assignment: {
           id: assignmentRef.id,
