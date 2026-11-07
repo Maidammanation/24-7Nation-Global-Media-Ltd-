@@ -2,7 +2,9 @@
 
 ## 1. Current security position
 
-The current Firestore rules restrict all database reads and writes to one known owner UID. This is a temporary owner-only baseline. It is safer than opening the database, but it is not the final multi-user access model.
+The live Firestore rules are intended to restrict all database reads and writes to one known owner UID. This is a temporary owner-only baseline. It is safer than opening the database, but it is not the final multi-user access model.
+
+The repository now tracks that baseline in `firestore.rules`. The root `firebase.json` points Firebase CLI to this rules file and the empty `firestore.indexes.json` manifest. **Committing these files does not deploy them to Firebase.** The live Firebase Console rules remain unchanged until a separately reviewed and approved Firebase deployment is performed.
 
 The owner UID check in browser JavaScript is a user-interface gate, not a security boundary. Database rules and trusted backend verification must enforce access independently.
 
@@ -30,7 +32,17 @@ Before enabling staff roles, define a permission matrix covering:
 
 Enforce this matrix in Firestore rules and trusted backend functions. Hiding a navigation item or disabling a button is not access control.
 
-## 4. Audit history
+## 4. Firestore source-control baseline
+
+- `firestore.rules` currently mirrors the owner-only baseline: only the authenticated owner UID can read or write documents.
+- No staff, member or public-client permissions are granted by this rules file.
+- `firebase.json` declares the Firestore rules and index manifest paths for future Firebase CLI use.
+- `firestore.indexes.json` is intentionally empty until real queries are implemented.
+- Do not deploy a replacement ruleset until emulator tests cover allowed and denied access for owner, unauthorised signed-in users and unauthenticated users.
+- Before multi-user access is introduced, use trusted server-side role assignment and test department scope, ownership boundaries, protected fields and audit-event immutability.
+- The current broad owner-only rule is a temporary compatibility baseline, not the final audit-history design. Audit writes should move to trusted backend code before staff access is enabled.
+
+## 5. Audit history
 
 Audit events should be append-only from normal application workflows and written by trusted backend code. Capture, as appropriate:
 - Actor UID and effective role.
@@ -42,7 +54,7 @@ Audit events should be append-only from normal application workflows and written
 
 Never store passwords, authentication tokens, private keys or unnecessary personal information in audit records. Ordinary staff should not be able to edit or erase audit history.
 
-## 5. Data protection
+## 6. Data protection
 
 - Collect only information needed for a defined purpose.
 - Separate public content from private staff/member information.
@@ -53,7 +65,7 @@ Never store passwords, authentication tokens, private keys or unnecessary person
 - Plan encrypted backups and periodically test restoration.
 - Document privacy notices and support contact before public registration.
 
-## 6. Editorial and AI safeguards
+## 7. Editorial and AI safeguards
 
 - Require a human approver before public release.
 - Preserve source notes and correction history.
@@ -62,7 +74,7 @@ Never store passwords, authentication tokens, private keys or unnecessary person
 - Keep AI API keys server-side.
 - Apply rate limits, quotas, monitoring and clear AI-assisted labelling where appropriate.
 
-## 7. Communications safeguards
+## 8. Communications safeguards
 
 Before messaging or calling launches:
 - Define who can contact whom and who can create groups.
@@ -72,11 +84,11 @@ Before messaging or calling launches:
 - Use a managed real-time calling provider and test network resilience.
 - Do not record calls by default; any recording feature requires clear notice, consent and lawful retention controls.
 
-## 8. Incident response
+## 9. Incident response
 
 Maintain a practical response plan for suspected account compromise, data exposure, malicious uploads, unauthorised publishing and service outage. The plan should identify who can disable access, rotate secrets, preserve evidence, notify affected people and restore service.
 
-## 9. Release security checklist
+## 10. Release security checklist
 
 - [ ] No private keys, tokens or passwords committed.
 - [ ] Authentication and authorisation tested.
