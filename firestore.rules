@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null
+        && request.auth.uid == '6HtU9DzFW3epuzWobvRg54VrRYt2';
+    }
+
+    // Temporary production baseline:
+    // only the verified owner account can read or write Firestore.
+    // All staff/member roles remain disabled until trusted role
+    // assignment, backend verification and automated rules tests exist.
+    match /{document=**} {
+      allow read, write: if isOwner();
+    }
+  }
+}
