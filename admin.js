@@ -161,7 +161,7 @@ function renderTeamShell() {
     <div class="team-intro"><b>Create staff accounts directly from your owner dashboard.</b><p>Enter the staff member’s name, email and role. The secure backend creates the Firebase account, assigns department access and records the action. The staff member sets their own password using a private invitation link.</p></div>
     <div class="team-grid">
       <section class="panel-card team-form-card">
-        <div class="panel-heading"><div><span class="eyebrow">NEW ACCESS ASSIGNMENT</span><h3>Assign a role</h3></div><span class="gold-mark">＋</span></div>
+        <div class="panel-heading"><div><span class="eyebrow">NEW STAFF MEMBER</span><h3>Create staff account</h3></div><span class="gold-mark">＋</span></div>
         <form id="roleForm" class="role-form">
           <label for="staffName">Full name</label>
           <input id="staffName" name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Staff member's full name">
@@ -174,7 +174,7 @@ function renderTeamShell() {
           <div class="department-options">${departments.map(([value,label])=>`<label class="check-option"><input type="checkbox" name="departmentCodes" value="${value}"><span>${label}</span></label>`).join("")}</div>
           <label for="assignmentReason">Reason / approval reference</label>
           <textarea id="assignmentReason" name="reason" required minlength="5" maxlength="500" rows="3" placeholder="Explain why this access is required (5–500 characters)"></textarea>
-          <button class="gold-action" type="submit" id="assignRoleButton">CREATE ROLE ASSIGNMENT</button>
+          <button class="gold-action" type="submit" id="assignRoleButton">CREATE STAFF ACCOUNT</button>
           <p class="form-status" id="roleFormStatus" role="status" aria-live="polite"></p>
         </form>
       </section>
@@ -221,6 +221,7 @@ async function submitRoleAssignment(event) {
   try {
     const result = await apiRequest("/api/admin/create-staff", {method:"POST", body:JSON.stringify(payload)});
     status.textContent = `Account created for ${result.staff.displayName}. Copy the invitation link below and send it privately.`;
+    document.querySelectorAll(".invite-result").forEach(node => node.remove());
     const invite = document.createElement("div");
     invite.className = "invite-result";
     invite.innerHTML = '<b>STAFF PASSWORD-SETUP LINK</b><input readonly aria-label="Staff invitation link"><button type="button" class="small-action">Copy invitation link</button><small>This link allows the staff member to set their own password. Share it privately.</small>';
@@ -236,7 +237,7 @@ async function submitRoleAssignment(event) {
     status.textContent = error.message;
   } finally {
     button.disabled = false;
-    button.textContent = "CREATE ROLE ASSIGNMENT";
+    button.textContent = "CREATE STAFF ACCOUNT";
   }
 }
 
