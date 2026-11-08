@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   validateAssignmentInput,
+  validateNewStaffInput,
   validateRevokeInput
 } = require("../../api/_lib/validation");
 
@@ -83,4 +84,36 @@ test("validates revocation reason and assignment ID", () => {
     }),
     { code: "INVALID_INPUT" }
   );
+});
+
+test("accepts a valid new staff account request", () => {
+  const result = validateNewStaffInput({
+    displayName: "Amina Musa",
+    email: "Amina@example.com",
+    role: "editor",
+    departmentCodes: ["global_media"],
+    reason: "Appointed by the owner"
+  });
+  assert.equal(result.displayName, "Amina Musa");
+  assert.equal(result.email, "amina@example.com");
+  assert.equal(result.role, "editor");
+  assert.deepEqual(result.departmentCodes, ["global_media"]);
+});
+
+test("rejects invalid new staff details and requires department scope for department admins", () => {
+  assert.throws(() => validateNewStaffInput({
+    displayName: "A",
+    email: "not-an-email",
+    role: "editor",
+    departmentCodes: ["global_media"],
+    reason: "Appointed by the owner"
+  }), { code: "INVALID_INPUT" });
+
+  assert.throws(() => validateNewStaffInput({
+    displayName: "Amina Musa",
+    email: "amina@example.com",
+    role: "department_admin",
+    departmentCodes: [],
+    reason: "Appointed by the owner"
+  }), { code: "INVALID_INPUT" });
 });
