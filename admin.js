@@ -18,6 +18,7 @@ const firebaseConfig = {
 const OWNER_UID = "6HtU9DzFW3epuzWobvRg54VrRYt2";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+let currentUser = null;
 
 const loginScreen = document.getElementById("loginScreen");
 const appShell = document.getElementById("appShell");
@@ -28,6 +29,7 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const ownerEmail = document.getElementById("ownerEmail");
 const signOutButton = document.getElementById("signOutButton");
+const panel = document.getElementById("viewPanel");
 
 function showLogin(message = "") {
   loginScreen.hidden = false;
@@ -39,6 +41,28 @@ function showDashboard(user) {
   appShell.hidden = false;
   ownerEmail.textContent = user.email || "Verified owner";
 }
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[char]);
+}
+async function apiRequest(path, options = {}) {
+  if (!currentUser) throw new Error("Your owner session has expired. Sign in again.");
+  const token = await currentUser.getIdToken();
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    },
+    cache: "no-store"
+  });
+  let data = {};
+  try { data = await response.json(); } catch {}
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
+  return data;
+}
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -46,11 +70,7 @@ loginForm.addEventListener("submit", async (event) => {
   loginButton.disabled = true;
   loginButton.textContent = "VERIFYING...";
   try {
-    const credential = await signInWithEmailAndPassword(
-      auth,
-      emailInput.value.trim(),
-      passwordInput.value
-    );
+    const credential = await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
     if (credential.user.uid !== OWNER_UID) {
       await signOut(auth);
       showLogin("This account is not authorised for the CEO Control Centre.");
@@ -77,14 +97,17 @@ signOutButton.addEventListener("click", async () => {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
+    currentUser = null;
     showLogin();
     return;
   }
   if (user.uid !== OWNER_UID) {
+    currentUser = null;
     await signOut(auth);
     showLogin("This account is not authorised for the CEO Control Centre.");
     return;
   }
+  currentUser = user;
   showDashboard(user);
 });
 
@@ -96,17 +119,34 @@ if (menuButton && sidebar) {
 
 const pageTitle = document.getElementById("pageTitle");
 const crumbName = document.getElementById("crumbName");
-const panel = document.getElementById("viewPanel");
 const navItems = document.querySelectorAll(".nav-item");
 const year = document.getElementById("year");
 if (year) year.textContent = new Date().getFullYear();
 
+const departments = [
+  ["music_records", "24/7 Nation Music Records"],
+  ["global_media", "24/7 Nation Global Media"],
+  ["family", "24/7 Nation Family"],
+  ["mobile_app", "24/7 Nation Mobile App"],
+  ["website", "24/7 Nation Website"],
+  ["community_portal", "Community Portal for Members"]
+];
+const roles = [
+  ["super_admin", "Super-admin"],
+  ["department_admin", "Department administrator"],
+  ["editor", "Editor"],
+  ["journalist", "Journalist"],
+  ["artist_manager", "Artist manager"],
+  ["production_manager", "Production manager"],
+  ["community_manager", "Community manager"],
+  ["member", "Member"]
+];
 const views = {
   overview: {title:"CEO Control Centre",crumb:"OVERVIEW"},
   newsroom: {title:"Newsroom",crumb:"NEWSROOM",description:"Create, review and publish approved news stories, features, announcements and corrections.",items:["Story drafts and editorial review","Publication calendar and categories","Corrections, source notes and approval history"]},
   artists: {title:"Artists & Music",crumb:"ARTISTS & MUSIC",description:"Maintain verified artist profiles, releases, promotional materials and music rights information.",items:["Artist profiles and team assignments","Release metadata and streaming links","Contracts, permissions and release approvals"]},
   productions: {title:"Maidammanation Productions",crumb:"PRODUCTIONS",description:"Coordinate the production arm within 24/7 Nation Global Media.",items:["Projects, shoots and production schedules","Interviews, podcasts, documentaries and live coverage","Crew assignments, assets and production approvals"]},
-  team: {title:"Team & Roles",crumb:"TEAM & ROLES",description:"Invite staff and assign only the access each role needs. The owner retains the highest authority.",items:["Owner, super-admin and departmental roles","Role permissions and account status","Activity history and access reviews"]},
+  team: {title:"Team & Roles",crumb:"TEAM & ROLES"},
   members: {title:"Community Members",crumb:"MEMBERS",description:"Manage membership applications, approved profiles, announcements and community programmes.",items:["Member applications and verification","Member directory and communication preferences","Community programmes and safeguarding workflows"]},
   library: {title:"Media Library",crumb:"MEDIA LIBRARY",description:"Keep approved photos, video, audio, artwork and documents organised with clear rights information.",items:["Searchable media folders and metadata","Usage permissions, credits and expiry dates","Secure upload and access controls"]},
   ai: {title:"24/7 Nation AI Studio",crumb:"AI STUDIO",description:"Use AI to assist staff with research, drafting, planning and approved content organisation.",items:["Newsroom and creative drafting assistant","Source checking prompts and human approval queue","Media tagging and administrative summaries"]},
@@ -114,6 +154,147 @@ const views = {
   reports: {title:"Reports & Analytics",crumb:"REPORTS",description:"Review operational performance using verified data and clearly defined reporting periods.",items:["Website and content performance","Membership and programme reports","Export controls and audit history"]},
   settings: {title:"Organisation Settings",crumb:"SETTINGS",description:"Configure organisation details, platform preferences, security and connected services.",items:["Brand, contact and public website settings","Authentication and security policies","Integrations, data retention and privacy controls"]}
 };
+
+function renderTeamShell() {
+  panel.innerHTML = `
+    <div class="section-title"><div><span class="eyebrow">OWNER-ONLY WORKSPACE</span><h3>Team & Roles</h3></div><span class="live-tag">SECURE API</span></div>
+    <div class="team-intro"><b>Control access across the six official pillars.</b><p>Only existing Firebase Authentication accounts can receive a role. A role assignment does not create a login account or grant access to unfinished staff dashboards.</p></div>
+    <div class="team-grid">
+      <section class="panel-card team-form-card">
+        <div class="panel-heading"><div><span class="eyebrow">NEW ACCESS ASSIGNMENT</span><h3>Assign a role</h3></div><span class="gold-mark">＋</span></div>
+        <form id="roleForm" class="role-form">
+          <label for="staffUid">Staff Firebase User ID (UID)</label>
+          <input id="staffUid" name="uid" required maxlength="128" autocomplete="off" placeholder="Paste the staff account UID">
+          <p class="form-help">Get the UID from Firebase Console → Authentication → Users. Never enter a password here.</p>
+          <label for="staffRole">Role</label>
+          <select id="staffRole" name="role" required>${roles.map(([value,label])=>`<option value="${value}">${label}</option>`).join("")}</select>
+          <label>Department access</label>
+          <div class="department-options">${departments.map(([value,label])=>`<label class="check-option"><input type="checkbox" name="departmentCodes" value="${value}"><span>${label}</span></label>`).join("")}</div>
+          <label for="assignmentReason">Reason / approval reference</label>
+          <textarea id="assignmentReason" name="reason" required minlength="5" maxlength="500" rows="3" placeholder="Explain why this access is required (5–500 characters)"></textarea>
+          <button class="gold-action" type="submit" id="assignRoleButton">CREATE ROLE ASSIGNMENT</button>
+          <p class="form-status" id="roleFormStatus" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="panel-card">
+        <div class="panel-heading"><div><span class="eyebrow">CURRENT ACCESS RECORDS</span><h3>Role assignments</h3></div><button class="small-action" id="refreshAssignments" type="button">Refresh</button></div>
+        <div id="assignmentsStatus" class="empty-state">Loading secure records…</div>
+        <div id="assignmentsList" class="assignment-list"></div>
+      </section>
+    </div>
+    <section class="panel-card audit-card">
+      <div class="panel-heading"><div><span class="eyebrow">ACCOUNTABILITY</span><h3>Recent access activity</h3></div><button class="small-action" id="refreshAudit" type="button">Refresh logs</button></div>
+      <div id="auditStatus" class="empty-state">Loading audit history…</div>
+      <div id="auditList" class="audit-list"></div>
+    </section>
+    <p class="team-security-note">Security boundary: these endpoints are owner-only. Staff role records are not yet permission to use other management APIs. Firestore rules remain owner-only until full role-based policies are implemented and tested.</p>
+  `;
+  document.getElementById("roleForm").addEventListener("submit", submitRoleAssignment);
+  document.getElementById("refreshAssignments").addEventListener("click", loadAssignments);
+  document.getElementById("refreshAudit").addEventListener("click", loadAuditEvents);
+  loadAssignments();
+  loadAuditEvents();
+}
+
+async function submitRoleAssignment(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = document.getElementById("assignRoleButton");
+  const status = document.getElementById("roleFormStatus");
+  const departmentCodes = [...form.querySelectorAll('input[name="departmentCodes"]:checked')].map(input => input.value);
+  const payload = {
+    uid: form.uid.value.trim(),
+    role: form.role.value,
+    departmentCodes,
+    reason: form.reason.value.trim()
+  };
+  if (payload.role === "department_admin" && !departmentCodes.length) {
+    status.textContent = "Select at least one department for a department administrator.";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "VERIFYING & SAVING…";
+  status.textContent = "";
+  try {
+    await apiRequest("/api/admin/role-assignments", {method:"POST", body:JSON.stringify(payload)});
+    status.textContent = "Role assignment created and audit event recorded.";
+    form.reset();
+    await Promise.all([loadAssignments(), loadAuditEvents()]);
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "CREATE ROLE ASSIGNMENT";
+  }
+}
+
+function labelForRole(role) {
+  return roles.find(item => item[0] === role)?.[1] || role;
+}
+function labelForDepartments(codes) {
+  return (codes || []).map(code => departments.find(item=>item[0]===code)?.[1] || code).join(", ") || "No department scope";
+}
+function displayDate(value) {
+  if (!value) return "Date unavailable";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+}
+async function loadAssignments() {
+  const status = document.getElementById("assignmentsStatus");
+  const list = document.getElementById("assignmentsList");
+  if (!status || !list) return;
+  status.textContent = "Loading secure records…";
+  list.innerHTML = "";
+  try {
+    const data = await apiRequest("/api/admin/role-assignments");
+    const rows = data.assignments || [];
+    status.textContent = rows.length ? `${rows.length} assignment record(s) returned.` : "No role assignments have been created yet.";
+    list.innerHTML = rows.map(item => `
+      <article class="assignment-row">
+        <div class="assignment-main"><b>${escapeHtml(labelForRole(item.role))}</b><span class="assignment-uid">UID: ${escapeHtml(item.uid)}</span><small>${escapeHtml(labelForDepartments(item.departmentCodes))}</small><small>Created: ${escapeHtml(displayDate(item.assignedAt?._seconds ? item.assignedAt._seconds*1000 : item.assignedAt))}</small></div>
+        <div class="assignment-actions"><span class="record-status ${item.status==="active"?"active":"revoked"}">${escapeHtml(item.status || "unknown")}</span>${item.status==="active" ? `<button type="button" class="revoke-button" data-revoke="${escapeHtml(item.id)}">Revoke</button>` : ""}</div>
+      </article>`).join("");
+    list.querySelectorAll("[data-revoke]").forEach(button => button.addEventListener("click", revokeAssignment));
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+async function revokeAssignment(event) {
+  const assignmentId = event.currentTarget.dataset.revoke;
+  const reason = window.prompt("Enter the reason for revoking this access (at least 5 characters):");
+  if (reason === null) return;
+  if (reason.trim().length < 5) {
+    window.alert("Please provide a reason of at least 5 characters. No changes were made.");
+    return;
+  }
+  event.currentTarget.disabled = true;
+  try {
+    await apiRequest("/api/admin/role-assignments", {
+      method:"PATCH",
+      body:JSON.stringify({assignmentId, reason:reason.trim()})
+    });
+    await Promise.all([loadAssignments(), loadAuditEvents()]);
+  } catch (error) {
+    window.alert(error.message);
+    event.currentTarget.disabled = false;
+  }
+}
+async function loadAuditEvents() {
+  const status = document.getElementById("auditStatus");
+  const list = document.getElementById("auditList");
+  if (!status || !list) return;
+  status.textContent = "Loading audit history…";
+  list.innerHTML = "";
+  try {
+    const data = await apiRequest("/api/admin/audit-events");
+    const events = data.events || [];
+    status.textContent = events.length ? `Showing ${events.length} most recent event(s).` : "No audit events recorded yet.";
+    list.innerHTML = events.map(item => `
+      <article class="audit-row"><div><b>${escapeHtml((item.action || "activity").replaceAll(".", " · "))}</b><small>${escapeHtml(item.resourceType || "record")} · ${escapeHtml(item.resourceId || "—")}</small><small>Actor UID: ${escapeHtml(item.actorUid || "—")}</small></div><div class="audit-meta"><span class="record-status ${item.outcome==="success"?"active":"revoked"}">${escapeHtml(item.outcome || "unknown")}</span><small>${escapeHtml(displayDate(item.occurredAt))}</small></div></article>`).join("");
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
 
 function showView(key) {
   const view = views[key] || views.overview;
@@ -124,7 +305,11 @@ function showView(key) {
     window.location.reload();
     return;
   }
-  panel.innerHTML = '<div class="section-title"><div><span class="eyebrow">MANAGEMENT MODULE</span><h3>' + view.title + '</h3></div><span class="muted small">Backend connection required</span></div><div class="view-placeholder"><span class="eyebrow">PLANNED WORKSPACE</span><h3>' + view.title + '</h3><p>' + view.description + '</p><ul>' + view.items.map(item => '<li>' + item + '</li>').join('') + '</ul><span class="coming">NOT CONNECTED — SETUP PREVIEW</span></div>';
+  if (key === "team") {
+    renderTeamShell();
+  } else {
+    panel.innerHTML = '<div class="section-title"><div><span class="eyebrow">MANAGEMENT MODULE</span><h3>' + escapeHtml(view.title) + '</h3></div><span class="muted small">Backend connection required</span></div><div class="view-placeholder"><span class="eyebrow">PLANNED WORKSPACE</span><h3>' + escapeHtml(view.title) + '</h3><p>' + escapeHtml(view.description) + '</p><ul>' + view.items.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul><span class="coming">NOT CONNECTED — SETUP PREVIEW</span></div>';
+  }
   if (sidebar) sidebar.classList.remove("open");
 }
 navItems.forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
