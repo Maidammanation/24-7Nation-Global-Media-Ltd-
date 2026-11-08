@@ -19,6 +19,7 @@ const OWNER_UID = "6HtU9DzFW3epuzWobvRg54VrRYt2";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 let currentUser = null;
+let staffDirectory = [];
 
 const loginScreen = document.getElementById("loginScreen");
 const appShell = document.getElementById("appShell");
@@ -184,6 +185,14 @@ function renderTeamShell() {
         <div id="assignmentsList" class="assignment-list"></div>
       </section>
     </div>
+    <section class="panel-card staff-directory-card">
+      <div class="panel-heading"><div><span class="eyebrow">FIREBASE AUTHENTICATION</span><h3>Staff account directory</h3></div><button class="small-action" id="refreshStaffDirectory" type="button">Refresh accounts</button></div>
+      <p class="directory-help">Search staff accounts, check their current access and suspend or reactivate sign-in. Suspension does not delete the account or its role history.</p>
+      <label class="directory-search-label" for="staffDirectorySearch">Search by name or email</label>
+      <input class="directory-search" id="staffDirectorySearch" type="search" placeholder="Search staff name or email">
+      <div id="staffDirectoryStatus" class="empty-state">Loading staff accounts…</div>
+      <div id="staffDirectoryList" class="staff-directory-list"></div>
+    </section>
     <section class="panel-card audit-card">
       <div class="panel-heading"><div><span class="eyebrow">ACCOUNTABILITY</span><h3>Recent access activity</h3></div><button class="small-action" id="refreshAudit" type="button">Refresh logs</button></div>
       <div id="auditStatus" class="empty-state">Loading audit history…</div>
@@ -292,6 +301,88 @@ async function revokeAssignment(event) {
     event.currentTarget.disabled = false;
   }
 }
+async function loadStaffDirectory() {
+  const status = document.getElementById("staffDirectoryStatus");
+  const list = document.getElementById("staffDirectoryList");
+  if (!status || !list) return;
+  status.textContent = "Loading Firebase account records…";
+  list.innerHTML = "";
+  try {
+    const data = await apiRequest("/api/admin/staff-users");
+    staffDirectory = data.staff || [];
+    status.textContent = staffDirectory.length
+      ? `${staffDirectory.length} staff account(s) found${data.truncated ? " — showing the latest 500 assignment-linked accounts" : ""}.`
+      : "No staff accounts with role history were found.";
+    renderStaffDirectory();
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+function renderStaffDirectory() {
+  const list = document.getElementById("staffDirectoryList");
+  const search = document.getElementById("staffDirectorySearch");
+  if (!list) return;
+  const term = (search?.value || "").trim().toLowerCase();
+  const matches = staffDirectory.filter(user =>
+    (user.displayName || "").toLowerCase().includes(term) ||
+    (user.email || "").toLowerCase().includes(term)
+  );
+  if (!matches.length) {
+    list.innerHTML = '<p class="empty-state">No matching staff accounts.</p>';
+    return;
+  }
+  list.innerHTML = matches.map(user => {
+    const activeRoles = user.assignments.filter(item => item.status === "active");
+    const roleText = activeRoles.length
+      ? activeRoles.map(item => `${labelForRole(item.role)} · ${labelForDepartments(item.departmentCodes)}`).join("<br>")
+      : "No active role assignment";
+    return `
+      <article class="staff-directory-row">
+        <div class="staff-directory-main">
+          <b>${escapeHtml(user.displayName)}</b>
+          <span>${escapeHtml(user.email || "No email on record")}</span>
+          <small>${roleText.split("<br>").map(escapeHtml).join("<br>")}</small>
+          <small>Last sign-in: ${escapeHtml(user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString() : "Not recorded")}</small>
+        </div>
+        <div class="staff-directory-actions">
+          <span class="record-status ${user.disabled ? "revoked" : "active"}">${user.disabled ? "SUSPENDED" : "ACTIVE"}</span>
+          <button type="button" class="${user.disabled ? "reactivate-button" : "revoke-button"}" data-staff-uid="${escapeHtml(user.uid)}" data-disabled="${user.disabled ? "true" : "false"}">${user.disabled ? "Reactivate" : "Suspend"}</button>
+        </div>
+      </article>`;
+  }).join("");
+  list.querySelectorAll("[data-staff-uid]").forEach(button =>
+    button.addEventListener("click", updateStaffAccountStatus)
+  );
+}
+
+async function updateStaffAccountStatus(event) {
+  const button = event.currentTarget;
+  const uid = button.dataset.staffUid;
+  const currentlyDisabled = button.dataset.disabled === "true";
+  const nextDisabled = !currentlyDisabled;
+  const reason = window.prompt(
+    `Enter the reason for ${nextDisabled ? "suspending" : "reactivating"} this staff account (at least 5 characters):`
+  );
+  if (reason === null) return;
+  if (reason.trim().length < 5 || reason.trim().length > 500) {
+    window.alert("Please enter a reason between 5 and 500 characters. No changes were made.");
+    return;
+  }
+  if (!window.confirm(`Confirm ${nextDisabled ? "suspension" : "reactivation"} of this staff account?`)) return;
+  button.disabled = true;
+  try {
+    await apiRequest("/api/admin/staff-users", {
+      method: "PATCH",
+      body: JSON.stringify({ uid, disabled: nextDisabled, reason: reason.trim() })
+    });
+    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
+  } catch (error) {
+    window.alert(error.message);
+    button.disabled = false;
+  }
+}
+
 async function loadAuditEvents() {
   const status = document.getElementById("auditStatus");
   const list = document.getElementById("auditList");
