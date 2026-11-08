@@ -37,3 +37,9 @@
 .audit-card{margin-top:14px}.audit-meta small{text-align:right}.team-security-note{font-size:10px;line-height:1.7;color:#c8b98f;padding:13px 15px;margin:14px 0;background:#211b11;border:1px solid rgba(215,179,93,.2)}
 @media(max-width:900px){.team-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.assignment-row,.audit-row{gap:8px}.assignment-actions{min-width:70px}.audit-meta{max-width:115px}.team-intro{padding:12px}}
+
+/* Owner-created staff account and private invitation link */
+.invite-result{display:grid;gap:8px;margin:12px 0;padding:13px;background:#142016;border:1px solid rgba(169,195,154,.3);border-radius:4px}
+.invite-result b{font-size:9px;letter-spacing:.8px;color:#c8dfbd}
+.invite-result input{width:100%;min-width:0;padding:10px;background:#0e110e;color:#e7eadf;border:1px solid var(--line);border-radius:3px;font-size:10px}
+.invite-result small{font-size:9px;line-height:1.6;color:#b4c0ae}
