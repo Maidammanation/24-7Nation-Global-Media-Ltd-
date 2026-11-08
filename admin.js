@@ -203,7 +203,10 @@ function renderTeamShell() {
   document.getElementById("roleForm").addEventListener("submit", submitRoleAssignment);
   document.getElementById("refreshAssignments").addEventListener("click", loadAssignments);
   document.getElementById("refreshAudit").addEventListener("click", loadAuditEvents);
+  document.getElementById("refreshStaffDirectory").addEventListener("click", loadStaffDirectory);
+  document.getElementById("staffDirectorySearch").addEventListener("input", renderStaffDirectory);
   loadAssignments();
+  loadStaffDirectory();
   loadAuditEvents();
 }
 
