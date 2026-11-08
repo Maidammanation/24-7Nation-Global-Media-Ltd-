@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10110f">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Staff Portal | 24/7 Nation Global Media</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="staff.css">
+</head>
+<body>
+  <main class="page">
+    <section class="auth-card" id="loginView">
+      <a class="brand" href="index.html"><span class="brand-mark">24<span>/7</span></span><span><b>24/7 NATION</b><small>GLOBAL MEDIA</small></span></a>
+      <p class="eyebrow">SECURE TEAM ACCESS</p>
+      <h1>STAFF PORTAL</h1>
+      <p class="intro">Sign in with the email address and password you set using your private staff invitation.</p>
+      <form id="loginForm">
+        <label for="email">Email address</label>
+        <input id="email" type="email" autocomplete="username" required placeholder="Your staff email">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required placeholder="Your password">
+        <button class="primary" id="loginButton" type="submit">SECURE STAFF SIGN IN</button>
+      </form>
+      <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+      <a class="back" href="index.html">← Return to 24/7 Nation website</a>
+    </section>
+
+    <section class="workspace" id="workspaceView" hidden>
+      <header class="topbar">
+        <a class="brand" href="index.html"><span class="brand-mark">24<span>/7</span></span><span><b>24/7 NATION</b><small>GLOBAL MEDIA</small></span></a>
+        <button class="secondary" id="signOutButton" type="button">Sign out</button>
+      </header>
+      <div class="content">
+        <p class="eyebrow">AUTHENTICATED STAFF WORKSPACE</p>
+        <h1 id="welcomeTitle">Welcome</h1>
+        <p class="intro" id="staffEmail"></p>
+        <div class="notice"><b>YOUR ACCESS IS VERIFIED</b><p>Your workspace below is based on active role assignments recorded by 24/7 Nation. Your permissions can be changed or withdrawn by the organisation owner.</p></div>
+        <section class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">YOUR AUTHORISED ACCESS</p><h2>Role & departments</h2></div><span class="verified">VERIFIED</span></div>
+          <div id="accessList" class="access-list"></div>
+        </section>
+        <section class="panel notice-panel">
+          <p class="eyebrow">WORKSPACE STATUS</p>
+          <h2>Department tools are being connected</h2>
+          <p>This first release verifies your identity and assigned access. News publishing, artist management, production tools, member records and other operational actions will appear only after their individual permission checks and audit controls are completed.</p>
+        </section>
+        <footer>© <span id="year"></span> 24/7 Nation Global Media · Rising A Voice For The North.</footer>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="staff.js"></script>
+</body>
+</html>
