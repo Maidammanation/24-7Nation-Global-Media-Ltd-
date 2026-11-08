@@ -90,10 +90,7 @@ loginForm.addEventListener("submit", async event => {
   loginButton.textContent = "VERIFYING…";
   loginMessage.textContent = "";
   try {
-    const credential = await signInWithEmailAndPassword(
-      auth, emailInput.value.trim(), passwordInput.value
-    );
-    await loadStaffWorkspace(credential.user);
+    await signInWithEmailAndPassword(\n      auth, emailInput.value.trim(), passwordInput.value\n    );
   } catch (error) {
     const messages = {
       "auth/invalid-credential": "Email or password is incorrect.",
