@@ -72,7 +72,7 @@ function validateNewStaffInput(body) {
   if (displayName.length < 2 || displayName.length > 100) {
     throw invalid("Enter a name between 2 and 100 characters.");
   }
-  if (email.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw invalid("Enter a valid email address.");
   }
   if (!ALLOWED_ROLES.has(role)) {
