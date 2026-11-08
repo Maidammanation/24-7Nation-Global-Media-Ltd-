@@ -35,6 +35,7 @@ module.exports = async function handler(req, res) {
     });
     createdUid = user.uid;
 
+    const invitationLink = await auth.generatePasswordResetLink(input.email);
     const assignmentRef = assignments.doc();
     const auditRef = auditEvents.doc();
 
@@ -91,9 +92,8 @@ module.exports = async function handler(req, res) {
       });
     });
 
-    // The owner shares this one-time Firebase password-reset link with the new staff member.
-    const invitationLink = await auth.generatePasswordResetLink(input.email);
-    createdUid = null; // Account and role are committed; do not roll back after link generation.
+    // The account and role are now committed successfully.
+    createdUid = null;
 
     return sendJson(res, 201, {
       message: "Staff account and role created.",
