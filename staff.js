@@ -3,6 +3,7 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
@@ -107,6 +108,34 @@ loginForm.addEventListener("submit", async event => {
     passwordInput.value = "";
     loginButton.disabled = false;
     loginButton.textContent = "SECURE STAFF SIGN IN";
+  }
+});
+
+document.getElementById("forgotPasswordButton").addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    loginMessage.textContent = "Enter your staff email address first, then tap Forgot your password.";
+    emailInput.focus();
+    return;
+  }
+  const button = document.getElementById("forgotPasswordButton");
+  button.disabled = true;
+  loginMessage.textContent = "Requesting a secure password reset…";
+  try {
+    await sendPasswordResetEmail(auth, email);
+    loginMessage.textContent = "If this email belongs to a registered account, Firebase has sent a password-reset email. Check your inbox and spam folder.";
+  } catch (error) {
+    if (error.code === "auth/invalid-email") {
+      loginMessage.textContent = "Enter a valid email address.";
+    } else if (error.code === "auth/too-many-requests") {
+      loginMessage.textContent = "Too many requests. Please wait before trying again.";
+    } else if (error.code === "auth/network-request-failed") {
+      loginMessage.textContent = "Network problem. Check your connection and try again.";
+    } else {
+      loginMessage.textContent = "We could not process the reset request. Try again later or contact the organisation administrator.";
+    }
+  } finally {
+    button.disabled = false;
   }
 });
 
