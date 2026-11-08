@@ -133,7 +133,7 @@ function handleApiError(res, error) {
     return sendJson(res, 503, { error: "Secure backend is not configured yet." });
   }
   if (error.code === "NOT_FOUND") {
-    return sendJson(res, 404, { error: "The requested record was not found." });
+    return sendJson(res, 404, { error: error.publicMessage || "The requested record was not found." });
   }
   if (error.code === "CONFLICT") {
     return sendJson(res, 409, { error: error.publicMessage || "The record has already changed." });
