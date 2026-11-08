@@ -76,6 +76,7 @@ module.exports = async function handler(req, res) {
     if (!assignments.length) {
       const error = new Error("No active staff access is assigned to this account. Contact the organisation owner.");
       error.code = "NOT_FOUND";
+      error.publicMessage = error.message;
       throw error;
     }
 
