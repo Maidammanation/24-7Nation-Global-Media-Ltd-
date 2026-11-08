@@ -158,14 +158,16 @@ const views = {
 function renderTeamShell() {
   panel.innerHTML = `
     <div class="section-title"><div><span class="eyebrow">OWNER-ONLY WORKSPACE</span><h3>Team & Roles</h3></div><span class="live-tag">SECURE API</span></div>
-    <div class="team-intro"><b>Control access across the six official pillars.</b><p>Only existing Firebase Authentication accounts can receive a role. A role assignment does not create a login account or grant access to unfinished staff dashboards.</p></div>
+    <div class="team-intro"><b>Create staff accounts directly from your owner dashboard.</b><p>Enter the staff member’s name, email and role. The secure backend creates the Firebase account, assigns department access and records the action. The staff member sets their own password using a private invitation link.</p></div>
     <div class="team-grid">
       <section class="panel-card team-form-card">
         <div class="panel-heading"><div><span class="eyebrow">NEW ACCESS ASSIGNMENT</span><h3>Assign a role</h3></div><span class="gold-mark">＋</span></div>
         <form id="roleForm" class="role-form">
-          <label for="staffUid">Staff Firebase User ID (UID)</label>
-          <input id="staffUid" name="uid" required maxlength="128" autocomplete="off" placeholder="Paste the staff account UID">
-          <p class="form-help">Get the UID from Firebase Console → Authentication → Users. Never enter a password here.</p>
+          <label for="staffName">Full name</label>
+          <input id="staffName" name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Staff member's full name">
+          <label for="staffEmail">Email address</label>
+          <input id="staffEmail" name="email" type="email" required maxlength="254" autocomplete="email" placeholder="staff@example.com">
+          <p class="form-help">We'll create the Firebase login and generate a secure password-setup link. You do not need to create a password or visit Firebase Console.</p>
           <label for="staffRole">Role</label>
           <select id="staffRole" name="role" required>${roles.map(([value,label])=>`<option value="${value}">${label}</option>`).join("")}</select>
           <label>Department access</label>
@@ -203,7 +205,8 @@ async function submitRoleAssignment(event) {
   const status = document.getElementById("roleFormStatus");
   const departmentCodes = [...form.querySelectorAll('input[name="departmentCodes"]:checked')].map(input => input.value);
   const payload = {
-    uid: form.uid.value.trim(),
+    displayName: form.displayName.value.trim(),
+    email: form.email.value.trim(),
     role: form.role.value,
     departmentCodes,
     reason: form.reason.value.trim()
@@ -213,11 +216,20 @@ async function submitRoleAssignment(event) {
     return;
   }
   button.disabled = true;
-  button.textContent = "VERIFYING & SAVING…";
+  button.textContent = "CREATING SECURE ACCOUNT…";
   status.textContent = "";
   try {
-    await apiRequest("/api/admin/role-assignments", {method:"POST", body:JSON.stringify(payload)});
-    status.textContent = "Role assignment created and audit event recorded.";
+    const result = await apiRequest("/api/admin/create-staff", {method:"POST", body:JSON.stringify(payload)});
+    status.textContent = `Account created for ${result.staff.displayName}. Copy the invitation link below and send it privately.`;
+    const invite = document.createElement("div");
+    invite.className = "invite-result";
+    invite.innerHTML = '<b>STAFF PASSWORD-SETUP LINK</b><input readonly aria-label="Staff invitation link"><button type="button" class="small-action">Copy invitation link</button><small>This link allows the staff member to set their own password. Share it privately.</small>';
+    invite.querySelector("input").value = result.invitationLink;
+    invite.querySelector("button").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(result.invitationLink); invite.querySelector("button").textContent = "Copied"; }
+      catch { invite.querySelector("input").focus(); invite.querySelector("input").select(); status.textContent = "Copy was blocked by the browser. Select and copy the link manually."; }
+    });
+    status.after(invite);
     form.reset();
     await Promise.all([loadAssignments(), loadAuditEvents()]);
   } catch (error) {
