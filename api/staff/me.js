@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
       throw error;
     }
 
-    const match = String(req.headers.authorization || "").match(/^Bearer\\s+(.+)$/i);
+    const match = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i);
     if (!match) {
       const error = new Error("Authentication is required.");
       error.code = "UNAUTHENTICATED";
