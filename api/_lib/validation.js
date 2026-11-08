@@ -117,5 +117,6 @@ module.exports = {
   ALLOWED_DEPARTMENTS,
   ALLOWED_ROLES,
   validateAssignmentInput,
+  validateNewStaffInput,
   validateRevokeInput
 };
