@@ -249,7 +249,7 @@ function labelForDepartments(codes) {
 }
 function displayDate(value) {
   if (!value) return "Date unavailable";
-  const date = new Date(value);
+  const date = new Date(value && typeof value === "object" && value._seconds ? value._seconds * 1000 : value);
   return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
 }
 async function loadAssignments() {
@@ -264,7 +264,7 @@ async function loadAssignments() {
     status.textContent = rows.length ? `${rows.length} assignment record(s) returned.` : "No role assignments have been created yet.";
     list.innerHTML = rows.map(item => `
       <article class="assignment-row">
-        <div class="assignment-main"><b>${escapeHtml(labelForRole(item.role))}</b><span class="assignment-uid">UID: ${escapeHtml(item.uid)}</span><small>${escapeHtml(labelForDepartments(item.departmentCodes))}</small><small>Created: ${escapeHtml(displayDate(item.assignedAt?._seconds ? item.assignedAt._seconds*1000 : item.assignedAt))}</small></div>
+        <div class="assignment-main"><b>${escapeHtml(item.displayName || labelForRole(item.role))}</b><span class="assignment-uid">${escapeHtml(item.email || ("UID: " + item.uid))}</span><small>${escapeHtml(labelForRole(item.role))} · ${escapeHtml(labelForDepartments(item.departmentCodes))}</small><small>Created: ${escapeHtml(displayDate(item.assignedAt?._seconds ? item.assignedAt._seconds*1000 : item.assignedAt))}</small></div>
         <div class="assignment-actions"><span class="record-status ${item.status==="active"?"active":"revoked"}">${escapeHtml(item.status || "unknown")}</span>${item.status==="active" ? `<button type="button" class="revoke-button" data-revoke="${escapeHtml(item.id)}">Revoke</button>` : ""}</div>
       </article>`).join("");
     list.querySelectorAll("[data-revoke]").forEach(button => button.addEventListener("click", revokeAssignment));
