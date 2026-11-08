@@ -7,7 +7,8 @@ Status: Backend endpoints committed; production credentials and live integration
 The Vercel Node.js API routes in this repository provide an owner-only foundation for:
 
 - Listing role assignments.
-- Creating a staff/member role assignment for an existing Firebase Authentication account.
+- Creating a new staff Firebase Authentication account directly from the owner dashboard, assigning its role, and generating a password-setup invitation link.
+- Assigning a role to an existing Firebase Authentication account.
 - Revoking an active assignment without deleting its history.
 - Reading the latest 50 audit events.
 
@@ -38,6 +39,24 @@ Do not use the ITF SUPA Firebase project credentials. Do not use a browser Fireb
 Treat the JSON key as a high-value secret. Restrict who can view Vercel environment variables, rotate the key if exposed, and delete unused keys. Never add it to this repository.
 
 ## 3. API routes
+
+### POST /api/admin/create-staff
+
+Creates a Firebase Authentication account for a new staff member, creates the role assignment and audit event, and returns a Firebase password-reset link for the owner to share privately. The owner supplies the person's display name, email, role, department codes and appointment reason. No staff password is created, requested or returned.
+
+Example JSON request:
+
+    {
+      "displayName": "Amina Musa",
+      "email": "amina@example.com",
+      "role": "editor",
+      "departmentCodes": ["global_media"],
+      "reason": "Appointed by the owner"
+    }
+
+The account is created with an unverified email. The staff member must use the private password-setup link to choose a password. The link is returned only to the authenticated owner and must not be posted publicly. If account setup or the role/audit transaction fails, the newly created Auth account is deleted.
+
+The service account requires Firebase Authentication Admin permissions for account creation/deletion and password-reset link generation. Firebase Authentication Viewer is insufficient.
 
 ### GET /api/admin/role-assignments
 
@@ -98,6 +117,9 @@ Returns up to 50 latest audit events. This endpoint is read-only.
 - [ ] Verify missing credentials fail closed with HTTP 503.
 - [ ] Verify unauthenticated requests return HTTP 401.
 - [ ] Verify a signed-in non-owner returns HTTP 403.
+- [ ] Verify owner can create a staff account and receive its password-setup link.
+- [ ] Verify duplicate email is rejected without creating a duplicate account.
+- [ ] Verify a new staff account and role assignment create an audit event.
 - [ ] Verify owner can list assignments and audit events.
 - [ ] Verify an invalid Firebase UID cannot receive an assignment.
 - [ ] Verify valid assignment creation creates exactly one audit event.
