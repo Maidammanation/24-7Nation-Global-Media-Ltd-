@@ -24,23 +24,32 @@ const loginButton = document.getElementById("loginButton");
 const loginMessage = document.getElementById("loginMessage");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-const roleLabels = {
-  super_admin: "Super-admin",
-  department_admin: "Department administrator",
-  editor: "Editor",
-  journalist: "Journalist",
-  artist_manager: "Artist manager",
-  production_manager: "Production manager",
-  community_manager: "Community manager",
-  member: "Member"
-};
-const departmentLabels = {
-  music_records: "24/7 Nation Music Records",
-  global_media: "24/7 Nation Global Media",
-  family: "24/7 Nation Family",
-  mobile_app: "24/7 Nation Mobile App",
-  website: "24/7 Nation Website",
-  community_portal: "Community Portal for Members"
+const permissionLabels = {
+  "workspace.view": "Open department workspace",
+  "records.view": "View department records",
+  "records.manage": "Manage department records",
+  "reports.view": "View department reports",
+  "content.view": "View newsroom content",
+  "content.create": "Create content",
+  "content.edit": "Edit content",
+  "content.edit_own": "Edit own stories",
+  "content.publish": "Publish content",
+  "content.review": "Review submitted content",
+  "media.view": "View media library",
+  "media.upload": "Upload media",
+  "artists.view": "View artist profiles",
+  "artists.manage": "Manage artist profiles",
+  "releases.view": "View music releases",
+  "releases.manage": "Manage music releases",
+  "productions.view": "View productions",
+  "productions.manage": "Manage productions",
+  "members.view": "View member records",
+  "community.view": "View community activity",
+  "community.manage": "Manage community activity",
+  "events.view": "View events",
+  "events.manage": "Manage events",
+  "profile.view": "View own profile",
+  "connect.use": "Use 24/7 Nation Connect"
 };
 
 function escapeHtml(value) {
@@ -56,9 +65,9 @@ function showLogin(message = "") {
 }
 
 async function loadStaffWorkspace(user) {
-  loginMessage.textContent = "Verifying your assigned access…";
+  loginMessage.textContent = "Verifying your department permissions…";
   const token = await user.getIdToken(true);
-  const response = await fetch("/api/staff/me", {
+  const response = await fetch("/api/staff/workspace", {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store"
   });
@@ -68,19 +77,27 @@ async function loadStaffWorkspace(user) {
   document.getElementById("welcomeTitle").textContent =
     `Welcome, ${data.staff.displayName || "Team member"}`;
   document.getElementById("staffEmail").textContent = data.staff.email || "";
-  document.getElementById("accessList").innerHTML = data.assignments.map(item => {
-    const departments = (item.departmentCodes || []).map(code =>
-      departmentLabels[code] || code
+
+  document.getElementById("accessList").innerHTML = data.workspaces.map(workspace => {
+    const roles = workspace.roles.map(role =>
+      role.replace(/_/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase())
+    );
+    const permissions = workspace.permissions.map(permission =>
+      permissionLabels[permission] || permission
     );
     return `
       <article class="access-card">
-        <div class="role-line"><b>${escapeHtml(roleLabels[item.role] || item.role)}</b><span class="active-tag">ACTIVE</span></div>
-        <p class="eyebrow">ASSIGNED DEPARTMENTS</p>
-        ${departments.length
-          ? `<ul>${departments.map(name => `<li>${escapeHtml(name)}</li>`).join("")}</ul>`
-          : '<p class="scope-empty">No department scope is listed for this assignment.</p>'}
+        <div class="role-line">
+          <b>${escapeHtml(workspace.name)}</b>
+          <span class="active-tag">AUTHORISED</span>
+        </div>
+        <p class="eyebrow">YOUR ROLE</p>
+        <p class="workspace-roles">${escapeHtml(roles.join(" · "))}</p>
+        <p class="eyebrow">PERMITTED ACTIONS</p>
+        <ul>${permissions.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </article>`;
   }).join("");
+
   loginView.hidden = true;
   workspaceView.hidden = false;
 }
