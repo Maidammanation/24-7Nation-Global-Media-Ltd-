@@ -30,6 +30,22 @@
       <a class="back" href="index.html">← Return to 24/7 Nation website</a>
     </section>
 
+    <section class="auth-card" id="forcePasswordView" hidden>
+      <a class="brand" href="index.html"><span class="brand-mark">24<span>/7</span></span><span><b>24/7 NATION</b><small>GLOBAL MEDIA</small></span></a>
+      <p class="eyebrow">ACCOUNT SECURITY REQUIRED</p>
+      <h1>CREATE A NEW PASSWORD</h1>
+      <p class="intro">Your administrator reset your password. Choose a new private password before entering the staff workspace.</p>
+      <form id="forcePasswordForm">
+        <label for="newStaffPassword">New password</label>
+        <input id="newStaffPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters">
+        <label for="confirmStaffPassword">Confirm new password</label>
+        <input id="confirmStaffPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="Enter it again">
+        <button class="primary" id="saveStaffPasswordButton" type="submit">SAVE NEW PASSWORD</button>
+      </form>
+      <p class="message" id="forcePasswordMessage" role="status" aria-live="polite"></p>
+      <button class="forgot-link" id="forcePasswordSignOut" type="button">Sign out</button>
+    </section>
+
     <section class="workspace" id="workspaceView" hidden>
       <header class="topbar">
         <a class="brand" href="index.html"><span class="brand-mark">24<span>/7</span></span><span><b>24/7 NATION</b><small>GLOBAL MEDIA</small></span></a>
