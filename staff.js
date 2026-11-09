@@ -218,20 +218,39 @@ loginForm.addEventListener("submit", async event => {
   }
 });
 
+let pendingPasswordResetEmail = "";
+
 document.getElementById("forgotPasswordButton").addEventListener("click", async () => {
   const email = emailInput.value.trim();
+  const button = document.getElementById("forgotPasswordButton");
+
   if (!email) {
-    loginMessage.textContent = "Enter your staff email address first, then tap Forgot your password.";
+    pendingPasswordResetEmail = "";
+    loginMessage.textContent = "No email address is entered. Type the staff member's registered email address in the Email address field first.";
     emailInput.focus();
     return;
   }
-  const button = document.getElementById("forgotPasswordButton");
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    pendingPasswordResetEmail = "";
+    loginMessage.textContent = "Enter a valid staff email address before requesting a reset.";
+    emailInput.focus();
+    return;
+  }
+
+  if (pendingPasswordResetEmail !== email) {
+    pendingPasswordResetEmail = email;
+    loginMessage.textContent = `Please confirm: the password-reset email will be requested for ${email}. Tap “Forgot your password?” again to send it, or change the email address.`;
+    return;
+  }
+
   button.disabled = true;
-  loginMessage.textContent = "Requesting a secure password reset…";
+  loginMessage.textContent = `Requesting a secure password reset for ${email}…`;
   try {
     await sendPasswordResetEmail(auth, email);
-    loginMessage.textContent = "If this email belongs to a registered account, Firebase has sent a password-reset email. Check your inbox and spam folder.";
+    loginMessage.textContent = `Firebase accepted the password-reset request for ${email}. If it is a registered account, check its inbox and spam folder.`;
+    pendingPasswordResetEmail = "";
   } catch (error) {
+    pendingPasswordResetEmail = "";
     if (error.code === "auth/invalid-email") {
       loginMessage.textContent = "Enter a valid email address.";
     } else if (error.code === "auth/too-many-requests") {
@@ -244,6 +263,10 @@ document.getElementById("forgotPasswordButton").addEventListener("click", async 
   } finally {
     button.disabled = false;
   }
+});
+
+emailInput.addEventListener("input", () => {
+  pendingPasswordResetEmail = "";
 });
 
 document.getElementById("storyForm").addEventListener("submit", async event => {
