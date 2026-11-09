@@ -44,10 +44,39 @@
           <div class="panel-heading"><div><p class="eyebrow">YOUR AUTHORISED ACCESS</p><h2>Role & departments</h2></div><span class="verified">VERIFIED</span></div>
           <div id="accessList" class="access-list"></div>
         </section>
-        <section class="panel notice-panel">
+        <section class="panel newsroom-panel" id="newsroomPanel" hidden>
+          <div class="panel-heading">
+            <div><p class="eyebrow">GLOBAL MEDIA · EDITORIAL DESK</p><h2>Newsroom</h2></div>
+            <button class="secondary" id="refreshNewsroom" type="button">Refresh stories</button>
+          </div>
+          <p class="newsroom-intro">Create drafts, submit reports and manage editorial review according to your assigned permissions.</p>
+          <p class="message" id="newsroomMessage" role="status" aria-live="polite"></p>
+          <form id="storyForm" class="story-form">
+            <input id="storyId" type="hidden">
+            <label for="storyTitle">Story headline</label>
+            <input id="storyTitle" maxlength="180" required placeholder="Write a clear, factual headline">
+            <label for="storySummary">Short summary (optional)</label>
+            <textarea id="storySummary" maxlength="500" rows="2" placeholder="A short introduction for readers"></textarea>
+            <label for="storyCategory">Category</label>
+            <select id="storyCategory">
+              <option>News</option><option>Politics</option><option>Community</option>
+              <option>Education</option><option>Business</option><option>Culture</option>
+              <option>Sports</option><option>Entertainment</option><option>Opinion</option>
+            </select>
+            <label for="storyBody">Full story</label>
+            <textarea id="storyBody" maxlength="30000" rows="8" required placeholder="Write the full report. Verify names, dates, places and quotations before submitting."></textarea>
+            <div class="form-actions">
+              <button class="primary" id="saveStoryButton" type="submit">SAVE DRAFT</button>
+              <button class="secondary" id="cancelEditButton" type="button" hidden>Cancel edit</button>
+            </div>
+          </form>
+          <div class="stories-heading"><h3>Editorial queue</h3><span id="storyCount" class="active-tag">0 STORIES</span></div>
+          <div id="storiesList" class="stories-list"><p class="scope-empty">Loading newsroom…</p></div>
+        </section>
+        <section class="panel notice-panel" id="otherToolsNotice">
           <p class="eyebrow">WORKSPACE STATUS</p>
-          <h2>Department tools are being connected</h2>
-          <p>This first release verifies your identity and assigned access. News publishing, artist management, production tools, member records and other operational actions will appear only after their individual permission checks and audit controls are completed.</p>
+          <h2>Other department tools are being connected</h2>
+          <p>Artist management, production tools, member records and other operational actions will appear only after their individual permission checks and audit controls are completed.</p>
         </section>
         <footer>© <span id="year"></span> 24/7 Nation Global Media · Rising A Voice For The North.</footer>
       </div>

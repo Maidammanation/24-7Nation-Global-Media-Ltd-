@@ -47,6 +47,7 @@ function serialize(doc) {
     reviewedAt: dateValue(data.reviewedAt),
     publishedAt: dateValue(data.publishedAt),
     reviewerName: data.reviewerName || "",
+    reviewNote: data.reviewNote || "",
     publisherName: data.publisherName || "",
     revisionCount: Array.isArray(data.revisions) ? data.revisions.length : 0
   };
