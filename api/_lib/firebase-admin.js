@@ -141,6 +141,16 @@ function handleApiError(res, error) {
   if (error.code === "INVALID_INPUT") {
     return sendJson(res, 400, { error: error.publicMessage || "The request is invalid." });
   }
+  if (error.code === "AUDIT_WRITE_FAILED") {
+    return sendJson(res, 503, {
+      error: "The audit record could not be saved. The previous account status was restored; no change was kept."
+    });
+  }
+  if (error.code === "ACCOUNT_STATE_UNCERTAIN") {
+    return sendJson(res, 503, {
+      error: "Audit recording failed and the account status could not be restored automatically. Check the account status and audit history before retrying."
+    });
+  }
 
   return sendJson(res, 500, { error: "The request could not be completed." });
 }
