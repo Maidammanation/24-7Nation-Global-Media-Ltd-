@@ -2,7 +2,7 @@ const { getFirebaseServices, handleApiError, sendJson } = require("../_lib/fireb
 module.exports = async function handler(req, res) {
   try {
     if (req.method !== "POST") { res.setHeader("Allow", "POST"); return sendJson(res, 405, { error: "Method not allowed." }); }
-    const match = String(req.headers.authorization || "").match(/^Bearer\\s+(.+)$/i);
+    const match = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i);
     if (!match) { const error = new Error("Authentication is required."); error.code = "UNAUTHENTICATED"; throw error; }
     const { auth, db, FieldValue } = getFirebaseServices();
     const decoded = await auth.verifyIdToken(match[1], true);
