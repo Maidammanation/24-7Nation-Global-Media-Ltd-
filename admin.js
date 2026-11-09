@@ -363,6 +363,31 @@ function renderStaffDirectory() {
   list.querySelectorAll("[data-archive-staff]").forEach(button => button.addEventListener("click", archiveStaffAccount));
 }
 
+async function updateStaffAccountStatus(event) {
+  const button = event.currentTarget;
+  const uid = button.dataset.staffUid;
+  const disabled = button.dataset.disabled !== "true";
+  const user = staffDirectory.find(item => item.uid === uid);
+  if (!user) return;
+  openStaffActionModal({
+    title: disabled ? "Suspend staff account" : "Reactivate staff account",
+    description: disabled
+      ? `Suspend sign-in for ${user.displayName}. Their account and role history will be retained.`
+      : `Restore sign-in for ${user.displayName}. Reactivation is allowed only when an active role assignment exists.`,
+    body: `
+      <label>Reason (required)<textarea name="reason" minlength="5" maxlength="500" rows="4" required placeholder="Explain why this access change is necessary"></textarea></label>`,
+    submitLabel: disabled ? "SUSPEND ACCOUNT" : "REACTIVATE ACCOUNT",
+    onSubmit: async data => {
+      const reason = String(data.get("reason") || "").trim();
+      await apiRequest("/api/admin/staff-users", {
+        method: "PATCH",
+        body: JSON.stringify({ uid, disabled, reason })
+      });
+      await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
+    }
+  });
+}
+
 function openStaffActionModal({ title, description, body, submitLabel, onSubmit }) {
   document.getElementById("staffActionModal")?.remove();
   const overlay = document.createElement("div");
