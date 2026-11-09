@@ -230,7 +230,7 @@ document.getElementById("forgotPasswordButton").addEventListener("click", async 
     emailInput.focus();
     return;
   }
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     pendingPasswordResetEmail = "";
     loginMessage.textContent = "Enter a valid staff email address before requesting a reset.";
     emailInput.focus();
