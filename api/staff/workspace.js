@@ -84,7 +84,8 @@ module.exports = async function handler(req, res) {
         uid: user.uid,
         displayName: user.displayName || "",
         email: user.email || "",
-        emailVerified: Boolean(user.emailVerified)
+        emailVerified: Boolean(user.emailVerified),
+        mustChangePassword: Boolean((await db.collection("staffSecurity").doc(user.uid).get()).data()?.mustChangePassword)
       },
       workspaces
     });
