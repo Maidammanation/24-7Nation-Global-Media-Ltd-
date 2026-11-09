@@ -349,41 +349,76 @@ function renderStaffDirectory() {
           <small>Last sign-in: ${escapeHtml(user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString() : "Not recorded")}</small>
         </div>
         <div class="staff-directory-actions">
-          <span class="record-status ${user.disabled ? "revoked" : "active"}">${user.disabled ? "SUSPENDED" : "ACTIVE"}</span>
+          <span class="record-status ${user.disabled ? "revoked" : "active"}">${user.disabled ? "SUSPENDED / ARCHIVED" : "ACTIVE"}</span>
+          <button type="button" class="small-action" data-edit-staff="${escapeHtml(user.uid)}">Edit name</button>
+          <button type="button" class="small-action" data-assign-staff="${escapeHtml(user.uid)}" ${user.disabled ? "disabled" : ""}>Add assignment</button>
           <button type="button" class="${user.disabled ? "reactivate-button" : "revoke-button"}" data-staff-uid="${escapeHtml(user.uid)}" data-disabled="${user.disabled ? "true" : "false"}">${user.disabled ? "Reactivate" : "Suspend"}</button>
+          <button type="button" class="revoke-button" data-archive-staff="${escapeHtml(user.uid)}" ${user.disabled ? "disabled" : ""}>Remove staff</button>
         </div>
       </article>`;
   }).join("");
-  list.querySelectorAll("[data-staff-uid]").forEach(button =>
-    button.addEventListener("click", updateStaffAccountStatus)
-  );
+  list.querySelectorAll("[data-staff-uid]").forEach(button => button.addEventListener("click", updateStaffAccountStatus));
+  list.querySelectorAll("[data-edit-staff]").forEach(button => button.addEventListener("click", editStaffProfile));
+  list.querySelectorAll("[data-assign-staff]").forEach(button => button.addEventListener("click", addStaffAssignment));
+  list.querySelectorAll("[data-archive-staff]").forEach(button => button.addEventListener("click", archiveStaffAccount));
 }
 
-async function updateStaffAccountStatus(event) {
-  const button = event.currentTarget;
-  const uid = button.dataset.staffUid;
-  const currentlyDisabled = button.dataset.disabled === "true";
-  const nextDisabled = !currentlyDisabled;
-  const reason = window.prompt(
-    `Enter the reason for ${nextDisabled ? "suspending" : "reactivating"} this staff account (at least 5 characters):`
-  );
+async function editStaffProfile(event) {
+  const uid = event.currentTarget.dataset.editStaff;
+  const user = staffDirectory.find(item => item.uid === uid);
+  if (!user) return;
+  const displayName = window.prompt("Edit staff member's full name:", user.displayName || "");
+  if (displayName === null) return;
+  const reason = window.prompt("Reason for this profile change (5–500 characters):");
   if (reason === null) return;
-  if (reason.trim().length < 5 || reason.trim().length > 500) {
-    window.alert("Please enter a reason between 5 and 500 characters. No changes were made.");
+  if (displayName.trim().length < 2 || displayName.trim().length > 100 || reason.trim().length < 5 || reason.trim().length > 500) {
+    window.alert("Enter a valid name and a reason of 5–500 characters. No changes were made.");
     return;
   }
-  if (!window.confirm(`Confirm ${nextDisabled ? "suspension" : "reactivation"} of this staff account?`)) return;
-  button.disabled = true;
   try {
-    await apiRequest("/api/admin/staff-users", {
-      method: "PATCH",
-      body: JSON.stringify({ uid, disabled: nextDisabled, reason: reason.trim() })
-    });
-    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
-  } catch (error) {
-    window.alert(error.message);
-    button.disabled = false;
+    await apiRequest("/api/admin/staff-profile", { method: "PATCH", body: JSON.stringify({ uid, displayName: displayName.trim(), reason: reason.trim() }) });
+    await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
+  } catch (error) { window.alert(error.message); }
+}
+
+async function addStaffAssignment(event) {
+  const uid = event.currentTarget.dataset.assignStaff;
+  const roleOptions = roles.map((item, index) => `${index + 1}. ${item[1]} (${item[0]})`).join("\\n");
+  const selected = window.prompt("Choose a role by number:\\n" + roleOptions);
+  if (selected === null) return;
+  const role = roles[Number(selected) - 1]?.[0];
+  if (!role) { window.alert("Invalid role selection. No changes were made."); return; }
+  const deptOptions = departments.map(item => item[0]).join(", ");
+  const rawDepartments = window.prompt("Enter department codes separated by commas:\\n" + deptOptions);
+  if (rawDepartments === null) return;
+  const departmentCodes = rawDepartments.split(",").map(value => value.trim()).filter(Boolean);
+  const reason = window.prompt("Reason for assigning this role (5–500 characters):");
+  if (reason === null) return;
+  if (reason.trim().length < 5 || departmentCodes.some(code => !departments.some(item => item[0] === code)) || new Set(departmentCodes).size !== departmentCodes.length || (role === "department_admin" && !departmentCodes.length)) {
+    window.alert("Check the department codes and reason. Department administrators require at least one department. No changes were made.");
+    return;
   }
+  try {
+    await apiRequest("/api/admin/role-assignments", { method: "POST", body: JSON.stringify({ uid, role, departmentCodes, reason: reason.trim() }) });
+    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
+  } catch (error) { window.alert(error.message); }
+}
+
+async function archiveStaffAccount(event) {
+  const uid = event.currentTarget.dataset.archiveStaff;
+  const user = staffDirectory.find(item => item.uid === uid);
+  if (!user) return;
+  const reason = window.prompt("Reason for removing this staff member (5–500 characters):");
+  if (reason === null) return;
+  if (reason.trim().length < 5 || reason.trim().length > 500) {
+    window.alert("Provide a reason between 5 and 500 characters. No changes were made.");
+    return;
+  }
+  if (!window.confirm(`Archive ${user.displayName}? This disables sign-in and revokes all active assignments. Historical audit records are retained; the account is not physically erased.`)) return;
+  try {
+    await apiRequest("/api/admin/remove-staff", { method: "POST", body: JSON.stringify({ uid, reason: reason.trim() }) });
+    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
+  } catch (error) { window.alert(error.message); }
 }
 
 async function loadAuditEvents() {
