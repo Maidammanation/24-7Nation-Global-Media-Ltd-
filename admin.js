@@ -350,6 +350,7 @@ function renderStaffDirectory() {
         </div>
         <div class="staff-directory-actions">
           <span class="record-status ${user.disabled ? "revoked" : "active"}">${user.disabled ? "SUSPENDED / ARCHIVED" : "ACTIVE"}</span>
+          <button type="button" class="small-action" data-reset-password="${escapeHtml(user.uid)}" ${user.disabled || !activeRoles.length ? "disabled" : ""}>Reset Password</button>
           <button type="button" class="small-action" data-edit-staff="${escapeHtml(user.uid)}">Edit name</button>
           <button type="button" class="small-action" data-assign-staff="${escapeHtml(user.uid)}" ${user.disabled ? "disabled" : ""}>Add assignment</button>
           <button type="button" class="${user.disabled ? "reactivate-button" : "revoke-button"}" data-staff-uid="${escapeHtml(user.uid)}" data-disabled="${user.disabled ? "true" : "false"}">${user.disabled ? "Reactivate" : "Suspend"}</button>
@@ -358,9 +359,62 @@ function renderStaffDirectory() {
       </article>`;
   }).join("");
   list.querySelectorAll("[data-staff-uid]").forEach(button => button.addEventListener("click", updateStaffAccountStatus));
+  list.querySelectorAll("[data-reset-password]").forEach(button => button.addEventListener("click", resetStaffPassword));
   list.querySelectorAll("[data-edit-staff]").forEach(button => button.addEventListener("click", editStaffProfile));
   list.querySelectorAll("[data-assign-staff]").forEach(button => button.addEventListener("click", addStaffAssignment));
   list.querySelectorAll("[data-archive-staff]").forEach(button => button.addEventListener("click", archiveStaffAccount));
+}
+
+async function resetStaffPassword(event) {
+  const uid = event.currentTarget.dataset.resetPassword;
+  const user = staffDirectory.find(item => item.uid === uid);
+  if (!user) return;
+  openStaffActionModal({
+    title: "Reset staff password",
+    description: `Generate a one-time temporary password for ${user.displayName}. They must choose a new password before entering the staff workspace.`,
+    body: `
+      <label>Reason (required)<textarea name="reason" minlength="5" maxlength="500" rows="4" required placeholder="Explain why this password reset is required"></textarea></label>`,
+    submitLabel: "GENERATE TEMPORARY PASSWORD",
+    onSubmit: async (data, status) => {
+      const reason = String(data.get("reason") || "").trim();
+      const result = await apiRequest("/api/admin/reset-staff-password", {
+        method: "POST",
+        body: JSON.stringify({ uid, reason })
+      });
+      status.innerHTML = "";
+      const heading = document.createElement("b");
+      heading.textContent = "TEMPORARY PASSWORD — SHOW ONCE";
+      const password = document.createElement("input");
+      password.type = "text";
+      password.readOnly = true;
+      password.autocomplete = "off";
+      password.value = result.temporaryPassword;
+      password.setAttribute("aria-label", "Temporary staff password");
+      password.style.width = "100%";
+      password.style.marginTop = "10px";
+      const note = document.createElement("small");
+      note.textContent = "Send this privately to the staff member. It will not be saved in the dashboard. They must replace it at their next sign-in.";
+      note.style.display = "block";
+      note.style.marginTop = "10px";
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "small-action";
+      copy.textContent = "Copy temporary password";
+      copy.style.marginTop = "10px";
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(result.temporaryPassword);
+          copy.textContent = "Copied";
+        } catch {
+          password.focus();
+          password.select();
+          copy.textContent = "Select and copy";
+        }
+      });
+      status.append(heading, password, note, copy);
+      await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
+    }
+  });
 }
 
 async function updateStaffAccountStatus(event) {
