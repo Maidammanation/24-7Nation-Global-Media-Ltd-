@@ -15,7 +15,7 @@ const ROLE_PERMISSIONS = {
     "*": ["workspace.view", "records.view", "records.manage", "reports.view", "content.view", "content.review", "media.view", "artists.view", "releases.view", "productions.view", "members.view", "community.view", "events.view", "profile.view", "connect.use"]
   },
   editor: {
-    global_media: ["workspace.view", "content.view", "content.create", "content.edit", "content.publish", "media.view", "media.upload"],
+    global_media: ["workspace.view", "content.view", "content.create", "content.edit", "content.review", "content.publish", "media.view", "media.upload"],
     website: ["workspace.view", "content.view", "content.create", "content.edit", "content.publish"]
   },
   journalist: {

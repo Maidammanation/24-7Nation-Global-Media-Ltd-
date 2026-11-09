@@ -5,6 +5,7 @@ const {
   sendJson
 } = require("../_lib/firebase-admin");
 const { hasStaffPermission } = require("../_lib/staff-permissions");
+const { FieldValue } = require("firebase-admin/firestore");
 
 function fail(code, message) {
   const error = new Error(message);
@@ -155,10 +156,8 @@ module.exports = async function handler(req, res) {
           authorUid: decoded.uid,
           authorName: user.displayName || user.email || "Staff member",
           authorEmail: user.email || "",
-          createdAt: context.db.constructor.FieldValue
-            ? context.db.constructor.FieldValue.serverTimestamp()
-            : require("firebase-admin/firestore").FieldValue.serverTimestamp(),
-          updatedAt: require("firebase-admin/firestore").FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
           submittedAt: null,
           reviewedAt: null,
           publishedAt: null,
@@ -191,7 +190,7 @@ module.exports = async function handler(req, res) {
     const action = typeof req.body?.action === "string" ? req.body.action : "";
     const storyRef = stories.doc(id);
     const auditRef = audit.doc();
-    const now = require("firebase-admin/firestore").FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
 
     const result = await db.runTransaction(async transaction => {
       const snap = await transaction.get(storyRef);

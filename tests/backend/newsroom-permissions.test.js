@@ -12,7 +12,7 @@ test("newsroom permission policy separates author, reviewer and publisher", () =
   assert.equal(hasStaffPermission(journalist, "global_media", "content.review"), false);
   assert.equal(hasStaffPermission(journalist, "global_media", "content.publish"), false);
 
-  assert.equal(hasStaffPermission(editor, "global_media", "content.review"), false);
+  assert.equal(hasStaffPermission(editor, "global_media", "content.review"), true);
   assert.equal(hasStaffPermission(editor, "global_media", "content.publish"), true);
 
   assert.equal(hasStaffPermission(departmentAdmin, "global_media", "content.review"), true);
