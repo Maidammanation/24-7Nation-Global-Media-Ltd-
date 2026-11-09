@@ -94,24 +94,40 @@ module.exports = async function handler(req, res) {
         throw error;
       }
 
+      const previousDisabled = Boolean(user.disabled);
       await auth.updateUser(uid, { disabled: body.disabled });
-      await auditRef.add({
-        actorUid: actor.uid,
-        actorRoleAtTime: "owner",
-        action: body.disabled ? "staff_account.suspended" : "staff_account.reactivated",
-        resourceType: "staffAccount",
-        resourceId: uid,
-        outcome: "success",
-        occurredAt: FieldValue.serverTimestamp(),
-        reason,
-        requestId: getRequestId(req),
-        metadata: {
-          targetUid: uid,
-          email: user.email || "",
-          displayName: user.displayName || "",
-          disabled: body.disabled
+
+      try {
+        await auditRef.add({
+          actorUid: actor.uid,
+          actorRoleAtTime: "owner",
+          action: body.disabled ? "staff_account.suspended" : "staff_account.reactivated",
+          resourceType: "staffAccount",
+          resourceId: uid,
+          outcome: "success",
+          occurredAt: FieldValue.serverTimestamp(),
+          reason,
+          requestId: getRequestId(req),
+          metadata: {
+            targetUid: uid,
+            email: user.email || "",
+            displayName: user.displayName || "",
+            disabled: body.disabled
+          }
+        });
+      } catch {
+        try {
+          await auth.updateUser(uid, { disabled: previousDisabled });
+        } catch {
+          const error = new Error("Audit recording failed and the account status could not be restored automatically.");
+          error.code = "ACCOUNT_STATE_UNCERTAIN";
+          throw error;
         }
-      });
+
+        const error = new Error("The audit record could not be saved. The previous account status was restored; no change was kept.");
+        error.code = "AUDIT_WRITE_FAILED";
+        throw error;
+      }
 
       return sendJson(res, 200, {
         staff: { uid, disabled: body.disabled },
