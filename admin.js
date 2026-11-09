@@ -363,62 +363,114 @@ function renderStaffDirectory() {
   list.querySelectorAll("[data-archive-staff]").forEach(button => button.addEventListener("click", archiveStaffAccount));
 }
 
+function openStaffActionModal({ title, description, body, submitLabel, onSubmit }) {
+  document.getElementById("staffActionModal")?.remove();
+  const overlay = document.createElement("div");
+  overlay.id = "staffActionModal";
+  overlay.className = "staff-modal-backdrop";
+  overlay.innerHTML = `
+    <section class="staff-action-modal" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+      <button type="button" class="staff-modal-close" aria-label="Close">×</button>
+      <span class="eyebrow">24/7NATION · CEO ADMINISTRATION</span>
+      <h3 id="staffModalTitle">${escapeHtml(title)}</h3>
+      <p class="staff-modal-description">${escapeHtml(description)}</p>
+      <form class="staff-modal-form">
+        <div class="staff-modal-fields">${body}</div>
+        <p class="staff-modal-status" role="status" aria-live="polite"></p>
+        <div class="staff-modal-buttons">
+          <button type="button" class="small-action staff-modal-cancel">Cancel</button>
+          <button type="submit" class="gold-action staff-modal-submit">${escapeHtml(submitLabel)}</button>
+        </div>
+      </form>
+    </section>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector(".staff-modal-close").addEventListener("click", close);
+  overlay.querySelector(".staff-modal-cancel").addEventListener("click", close);
+  overlay.addEventListener("click", event => { if (event.target === overlay) close(); });
+  overlay.querySelector("form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector(".staff-modal-submit");
+    const status = form.querySelector(".staff-modal-status");
+    if (!form.reportValidity()) return;
+    submit.disabled = true;
+    submit.textContent = "PLEASE WAIT…";
+    status.textContent = "";
+    try {
+      await onSubmit(new FormData(form), status);
+      close();
+    } catch (error) {
+      status.textContent = error.message || "The action could not be completed.";
+      submit.disabled = false;
+      submit.textContent = submitLabel;
+    }
+  });
+  overlay.querySelector("input,select,textarea")?.focus();
+}
+
 async function editStaffProfile(event) {
   const uid = event.currentTarget.dataset.editStaff;
   const user = staffDirectory.find(item => item.uid === uid);
   if (!user) return;
-  const displayName = window.prompt("Edit staff member's full name:", user.displayName || "");
-  if (displayName === null) return;
-  const reason = window.prompt("Reason for this profile change (5–500 characters):");
-  if (reason === null) return;
-  if (displayName.trim().length < 2 || displayName.trim().length > 100 || reason.trim().length < 5 || reason.trim().length > 500) {
-    window.alert("Enter a valid name and a reason of 5–500 characters. No changes were made.");
-    return;
-  }
-  try {
-    await apiRequest("/api/admin/staff-profile", { method: "PATCH", body: JSON.stringify({ uid, displayName: displayName.trim(), reason: reason.trim() }) });
-    await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
-  } catch (error) { window.alert(error.message); }
+  openStaffActionModal({
+    title: "Edit staff profile",
+    description: "Update the staff member's display name. Your reason will be saved in the audit history.",
+    body: `
+      <label>Full name<input name="displayName" type="text" minlength="2" maxlength="100" required value="${escapeHtml(user.displayName || "")}"></label>
+      <label>Reason for this change<textarea name="reason" minlength="5" maxlength="500" rows="3" required placeholder="Explain why this profile is being updated"></textarea></label>`,
+    submitLabel: "SAVE PROFILE",
+    onSubmit: async data => {
+      await apiRequest("/api/admin/staff-profile", { method: "PATCH", body: JSON.stringify({ uid, displayName: String(data.get("displayName")).trim(), reason: String(data.get("reason")).trim() }) });
+      await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
+    }
+  });
 }
 
 async function addStaffAssignment(event) {
   const uid = event.currentTarget.dataset.assignStaff;
-  const roleOptions = roles.map((item, index) => `${index + 1}. ${item[1]} (${item[0]})`).join("\\n");
-  const selected = window.prompt("Choose a role by number:\\n" + roleOptions);
-  if (selected === null) return;
-  const role = roles[Number(selected) - 1]?.[0];
-  if (!role) { window.alert("Invalid role selection. No changes were made."); return; }
-  const deptOptions = departments.map(item => item[0]).join(", ");
-  const rawDepartments = window.prompt("Enter department codes separated by commas:\\n" + deptOptions);
-  if (rawDepartments === null) return;
-  const departmentCodes = rawDepartments.split(",").map(value => value.trim()).filter(Boolean);
-  const reason = window.prompt("Reason for assigning this role (5–500 characters):");
-  if (reason === null) return;
-  if (reason.trim().length < 5 || departmentCodes.some(code => !departments.some(item => item[0] === code)) || new Set(departmentCodes).size !== departmentCodes.length || (role === "department_admin" && !departmentCodes.length)) {
-    window.alert("Check the department codes and reason. Department administrators require at least one department. No changes were made.");
-    return;
-  }
-  try {
-    await apiRequest("/api/admin/role-assignments", { method: "POST", body: JSON.stringify({ uid, role, departmentCodes, reason: reason.trim() }) });
-    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
-  } catch (error) { window.alert(error.message); }
+  const user = staffDirectory.find(item => item.uid === uid);
+  if (!user) return;
+  const roleOptions = roles.filter(item => item[0] !== "super_admin").map(item => `<option value="${escapeHtml(item[0])}">${escapeHtml(item[1])}</option>`).join("");
+  const departmentOptions = departments.map(item => `
+    <label class="staff-modal-check"><input type="checkbox" name="departmentCodes" value="${escapeHtml(item[0])}"><span>${escapeHtml(item[1])}</span></label>`).join("");
+  openStaffActionModal({
+    title: "Add staff assignment",
+    description: `Assign another role or department to ${user.displayName}. Existing assignments will remain unchanged.`,
+    body: `
+      <label>Role<select name="role" required><option value="">Select a role</option>${roleOptions}</select></label>
+      <fieldset class="staff-modal-departments"><legend>Departments</legend>${departmentOptions}</fieldset>
+      <label>Reason for assignment<textarea name="reason" minlength="5" maxlength="500" rows="3" required placeholder="Explain the new responsibility"></textarea></label>`,
+    submitLabel: "ADD ASSIGNMENT",
+    onSubmit: async data => {
+      const role = String(data.get("role") || "");
+      const departmentCodes = data.getAll("departmentCodes").map(String);
+      const reason = String(data.get("reason") || "").trim();
+      if (role === "department_admin" && !departmentCodes.length) throw new Error("Select at least one department for a department administrator.");
+      await apiRequest("/api/admin/role-assignments", { method: "POST", body: JSON.stringify({ uid, role, departmentCodes, reason }) });
+      await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
+    }
+  });
 }
 
 async function archiveStaffAccount(event) {
   const uid = event.currentTarget.dataset.archiveStaff;
   const user = staffDirectory.find(item => item.uid === uid);
   if (!user) return;
-  const reason = window.prompt("Reason for removing this staff member (5–500 characters):");
-  if (reason === null) return;
-  if (reason.trim().length < 5 || reason.trim().length > 500) {
-    window.alert("Provide a reason between 5 and 500 characters. No changes were made.");
-    return;
-  }
-  if (!window.confirm(`Archive ${user.displayName}? This disables sign-in and revokes all active assignments. Historical audit records are retained; the account is not physically erased.`)) return;
-  try {
-    await apiRequest("/api/admin/remove-staff", { method: "POST", body: JSON.stringify({ uid, reason: reason.trim() }) });
-    await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
-  } catch (error) { window.alert(error.message); }
+  openStaffActionModal({
+    title: "Remove staff member",
+    description: `This will archive ${user.displayName}, disable their sign-in and revoke all active assignments. Historical records will be retained. This does not physically erase the Firebase account.`,
+    body: `
+      <label>Mandatory reason for removal<textarea name="reason" minlength="5" maxlength="500" rows="4" required placeholder="Explain why this staff member is being removed"></textarea></label>
+      <label class="staff-modal-check staff-modal-confirm"><input name="confirmArchive" type="checkbox" value="yes" required><span>I understand this will disable access and revoke all active assignments.</span></label>`,
+    submitLabel: "CONFIRM ARCHIVE",
+    onSubmit: async data => {
+      const reason = String(data.get("reason") || "").trim();
+      if (data.get("confirmArchive") !== "yes") throw new Error("Confirm the archive action before continuing.");
+      await apiRequest("/api/admin/remove-staff", { method: "POST", body: JSON.stringify({ uid, reason }) });
+      await Promise.all([loadStaffDirectory(), loadAssignments(), loadAuditEvents()]);
+    }
+  });
 }
 
 async function loadAuditEvents() {
