@@ -80,7 +80,7 @@ async function loadStaffWorkspace(user) {
 
   document.getElementById("accessList").innerHTML = data.workspaces.map(workspace => {
     const roles = workspace.roles.map(role =>
-      role.replace(/_/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase())
+      role.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase())
     );
     const permissions = workspace.permissions.map(permission =>
       permissionLabels[permission] || permission
