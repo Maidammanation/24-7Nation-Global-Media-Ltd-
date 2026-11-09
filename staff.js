@@ -4,6 +4,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  updatePassword,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
@@ -19,6 +20,10 @@ const firebaseConfig = {
 const auth = getAuth(initializeApp(firebaseConfig));
 const loginView = document.getElementById("loginView");
 const workspaceView = document.getElementById("workspaceView");
+const forcePasswordView = document.getElementById("forcePasswordView");
+const forcePasswordForm = document.getElementById("forcePasswordForm");
+const forcePasswordMessage = document.getElementById("forcePasswordMessage");
+let pendingForcedPasswordUser = null;
 const loginForm = document.getElementById("loginForm");
 const loginButton = document.getElementById("loginButton");
 const loginMessage = document.getElementById("loginMessage");
@@ -158,6 +163,16 @@ async function loadStaffWorkspace(user) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "Your staff access could not be verified.");
 
+  if (data.staff.mustChangePassword) {
+    pendingForcedPasswordUser = user;
+    loginView.hidden = true;
+    workspaceView.hidden = true;
+    forcePasswordView.hidden = false;
+    forcePasswordMessage.textContent = "A password reset is pending. Set a new password to continue.";
+    return;
+  }
+  pendingForcedPasswordUser = null;
+  forcePasswordView.hidden = true;
   document.getElementById("welcomeTitle").textContent =
     `Welcome, ${data.staff.displayName || "Team member"}`;
   document.getElementById("staffEmail").textContent = data.staff.email || "";
@@ -341,6 +356,55 @@ document.getElementById("storiesList").addEventListener("click", async event => 
   } finally {
     button.disabled = false;
   }
+});
+
+forcePasswordForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const first = document.getElementById("newStaffPassword").value;
+  const second = document.getElementById("confirmStaffPassword").value;
+  const button = document.getElementById("saveStaffPasswordButton");
+  if (first.length < 12) {
+    forcePasswordMessage.textContent = "Use at least 12 characters for your new password.";
+    return;
+  }
+  if (first !== second) {
+    forcePasswordMessage.textContent = "The passwords do not match.";
+    return;
+  }
+  if (!pendingForcedPasswordUser) {
+    forcePasswordMessage.textContent = "Your sign-in session has expired. Sign in again.";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "UPDATING PASSWORD…";
+  forcePasswordMessage.textContent = "";
+  try {
+    await updatePassword(pendingForcedPasswordUser, first);
+    const token = await pendingForcedPasswordUser.getIdToken(true);
+    const response = await fetch("/api/staff/complete-password-change", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store"
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Your password changed, but the security confirmation could not be completed. Contact the administrator.");
+    forcePasswordForm.reset();
+    await loadStaffWorkspace(pendingForcedPasswordUser);
+  } catch (error) {
+    forcePasswordMessage.textContent = error.code === "auth/weak-password"
+      ? "Choose a stronger password with at least 12 characters."
+      : (error.message || "Password update failed. Please try again.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "SAVE NEW PASSWORD";
+  }
+});
+
+document.getElementById("forcePasswordSignOut").addEventListener("click", async () => {
+  pendingForcedPasswordUser = null;
+  await signOut(auth);
+  forcePasswordView.hidden = true;
+  showLogin("You have signed out.");
 });
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
