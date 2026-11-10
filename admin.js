@@ -479,7 +479,14 @@ function openStaffActionModal({ title, description, body, submitLabel, onSubmit 
     status.textContent = "";
     try {
       const closeAfterSubmit = await onSubmit(new FormData(form), status);
-      if (closeAfterSubmit !== false) close();
+      if (closeAfterSubmit !== false) {
+        close();
+      } else {
+        submit.disabled = false;
+        submit.type = "button";
+        submit.textContent = "DONE";
+        submit.addEventListener("click", close, { once: true });
+      }
     } catch (error) {
       status.textContent = error.message || "The action could not be completed.";
       submit.disabled = false;
