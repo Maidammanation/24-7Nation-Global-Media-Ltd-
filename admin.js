@@ -413,6 +413,7 @@ async function resetStaffPassword(event) {
       });
       status.append(heading, password, note, copy);
       await Promise.all([loadStaffDirectory(), loadAuditEvents()]);
+      return false;
     }
   });
 }
@@ -477,8 +478,8 @@ function openStaffActionModal({ title, description, body, submitLabel, onSubmit 
     submit.textContent = "PLEASE WAIT…";
     status.textContent = "";
     try {
-      await onSubmit(new FormData(form), status);
-      close();
+      const closeAfterSubmit = await onSubmit(new FormData(form), status);
+      if (closeAfterSubmit !== false) close();
     } catch (error) {
       status.textContent = error.message || "The action could not be completed.";
       submit.disabled = false;
