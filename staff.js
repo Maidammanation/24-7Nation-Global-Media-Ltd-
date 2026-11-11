@@ -154,9 +154,12 @@ function resetStoryForm() {
 }
 
 function getWorkspaceDisplayName(workspace) {
-  if (workspace?.roles?.includes("production_manager")) {
-    return "Maidammanation Production 🎬";
-  }
+  const roles = Array.isArray(workspace?.roles) ? workspace.roles : [];
+  const permissions = Array.isArray(workspace?.permissions) ? workspace.permissions : [];
+  const isProductionWorkspace =
+    workspace?.departmentCode === "global_media" &&
+    (roles.includes("production_manager") || permissions.includes("productions.manage"));
+  if (isProductionWorkspace) return "Maidammanation Production 🎬";
   return workspace?.name || "Department Workspace";
 }
 
