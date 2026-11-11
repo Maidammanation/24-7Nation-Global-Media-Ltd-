@@ -153,6 +153,75 @@ function resetStoryForm() {
   document.getElementById("cancelEditButton").hidden = true;
 }
 
+function renderStaffNavigation(workspaces) {
+  const nav = document.getElementById("staffNavigation");
+  const items = [
+    '<button class="nav-item active" type="button" data-view="overview"><span class="nav-icon">⌂</span> Overview</button>'
+  ];
+  for (const workspace of workspaces) {
+    items.push(
+      `<button class="nav-item" type="button" data-view="department" data-department="${escapeHtml(workspace.departmentCode)}"><span class="nav-icon">▣</span><span class="nav-copy">${escapeHtml(workspace.name)}</span></button>`
+    );
+    if (workspace.departmentCode === "global_media" && workspace.permissions.includes("content.view")) {
+      items.push(
+        '<button class="nav-item nav-subitem" type="button" data-view="newsroom"><span class="nav-icon">✎</span> Newsroom</button>'
+      );
+    }
+  }
+  nav.innerHTML = items.join("");
+}
+
+function showStaffView(view, departmentCode = "") {
+  const overview = document.getElementById("overviewView");
+  const department = document.getElementById("departmentView");
+  const newsroom = document.getElementById("newsroomPanel");
+  overview.hidden = view !== "overview";
+  department.hidden = view !== "department";
+  newsroom.hidden = view !== "newsroom";
+
+  if (view === "department") {
+    const data = window.__staffWorkspaceData;
+    const workspace = (data?.workspaces || []).find(item => item.departmentCode === departmentCode);
+    if (!workspace) {
+      department.innerHTML = '<p class="eyebrow">DEPARTMENT ACCESS</p><h2>Department unavailable</h2><p class="department-copy">This department is not part of your current active access.</p>';
+    } else {
+      const roles = workspace.roles.map(role =>
+        role.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase())
+      );
+      const permissions = workspace.permissions.map(permission => permissionLabels[permission] || permission);
+      const newsroomAvailable = workspace.departmentCode === "global_media" && workspace.permissions.includes("content.view");
+      department.innerHTML = `
+        <p class="eyebrow">AUTHORISED DEPARTMENT WORKSPACE</p>
+        <h2>${escapeHtml(workspace.name)}</h2>
+        <p class="department-copy">Your access to this department has been verified by 24/7 Nation.</p>
+        <div class="department-status"><span class="status-indicator"></span><span>ACCESS ACTIVE</span></div>
+        <div class="department-details">
+          <div><p class="eyebrow">YOUR ROLE</p><p>${escapeHtml(roles.join(" · "))}</p></div>
+          <div><p class="eyebrow">PERMITTED ACTIONS</p><ul>${permissions.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
+        </div>
+        <div class="tool-status">
+          <p class="eyebrow">DEPARTMENT TOOLS</p>
+          <h3>${newsroomAvailable ? "Newsroom is available" : "Tools are being connected"}</h3>
+          <p>${newsroomAvailable ? "Use the Newsroom item in your sidebar to open the editorial desk. Other tools will appear when they are ready." : "Your department access is active, but its operational tools are not connected yet. No unavailable actions are presented as working features."}</p>
+          ${newsroomAvailable ? '<button class="secondary" type="button" data-open-newsroom>Open Newsroom</button>' : ""}
+        </div>`;
+    }
+  }
+
+  document.querySelectorAll("#staffNavigation [data-view]").forEach(button => {
+    const active = button.dataset.view === view &&
+      (view !== "department" || button.dataset.department === departmentCode);
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+
+  const sidebar = document.getElementById("staffSidebar");
+  const toggle = document.getElementById("mobileMenuToggle");
+  sidebar.classList.remove("sidebar-open");
+  toggle.setAttribute("aria-expanded", "false");
+}
+
 async function loadStaffWorkspace(user) {
   loginMessage.textContent = "Verifying your department permissions…";
   const token = await user.getIdToken(true);
@@ -177,12 +246,14 @@ async function loadStaffWorkspace(user) {
     `Welcome, ${data.staff.displayName || "Team member"}`;
   document.getElementById("staffEmail").textContent = data.staff.email || "";
 
-  const mediaWorkspace = (data.workspaces || []).find(item => item.departmentCode === "global_media");
+  const workspaces = Array.isArray(data.workspaces) ? data.workspaces : [];
+  window.__staffWorkspaceData = { workspaces };
+  const mediaWorkspace = workspaces.find(item => item.departmentCode === "global_media");
   newsroomPermissions = mediaWorkspace?.permissions || [];
-  const newsroomPanel = document.getElementById("newsroomPanel");
-  newsroomPanel.hidden = !newsroomCan("content.view");
-  document.getElementById("otherToolsNotice").hidden = !newsroomPanel.hidden;
-  document.getElementById("accessList").innerHTML = data.workspaces.map(workspace => {
+  document.getElementById("newsroomPanel").hidden = true;
+  document.getElementById("departmentView").hidden = true;
+  document.getElementById("overviewView").hidden = false;
+  document.getElementById("accessList").innerHTML = workspaces.map(workspace => {
     const roles = workspace.roles.map(role =>
       role.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase())
     );
@@ -201,11 +272,33 @@ async function loadStaffWorkspace(user) {
         <ul>${permissions.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </article>`;
   }).join("");
+  renderStaffNavigation(workspaces);
 
   loginView.hidden = true;
   workspaceView.hidden = false;
-  if (!newsroomPanel.hidden) await refreshNewsroom();
+  showStaffView("overview");
 }
+
+document.getElementById("staffNavigation").addEventListener("click", async event => {
+  const button = event.target.closest("button[data-view]");
+  if (!button) return;
+  const view = button.dataset.view;
+  showStaffView(view, button.dataset.department || "");
+  if (view === "newsroom") await refreshNewsroom();
+});
+
+document.getElementById("departmentView").addEventListener("click", async event => {
+  if (event.target.closest("[data-open-newsroom]")) {
+    showStaffView("newsroom");
+    await refreshNewsroom();
+  }
+});
+
+document.getElementById("mobileMenuToggle").addEventListener("click", () => {
+  const sidebar = document.getElementById("staffSidebar");
+  const open = sidebar.classList.toggle("sidebar-open");
+  document.getElementById("mobileMenuToggle").setAttribute("aria-expanded", String(open));
+});
 
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
