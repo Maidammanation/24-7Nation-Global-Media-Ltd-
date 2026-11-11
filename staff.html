@@ -49,17 +49,36 @@
     <section class="workspace" id="workspaceView" hidden>
       <header class="topbar">
         <a class="brand" href="index.html"><span class="brand-mark">24<span>/7</span></span><span><b>24/7 NATION</b><small>GLOBAL MEDIA</small></span></a>
-        <button class="secondary" id="signOutButton" type="button">Sign out</button>
+        <div class="topbar-actions">
+          <button class="secondary mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-expanded="false" aria-controls="staffSidebar">☰ Menu</button>
+          <button class="secondary" id="signOutButton" type="button">Sign out</button>
+        </div>
       </header>
-      <div class="content">
+      <div class="workspace-layout">
+        <aside class="staff-sidebar" id="staffSidebar" aria-label="Staff navigation">
+          <p class="sidebar-label">WORKSPACE MENU</p>
+          <nav id="staffNavigation" class="staff-navigation" aria-label="Department navigation">
+            <button class="nav-item active" type="button" data-view="overview"><span class="nav-icon">⌂</span> Overview</button>
+          </nav>
+          <div class="sidebar-foot"><span class="sidebar-dot"></span> Secure staff access</div>
+        </aside>
+        <div class="content">
         <p class="eyebrow">AUTHENTICATED STAFF WORKSPACE</p>
         <h1 id="welcomeTitle">Welcome</h1>
         <p class="intro" id="staffEmail"></p>
-        <div class="notice"><b>YOUR ACCESS IS VERIFIED</b><p>Your workspace below is based on active role assignments recorded by 24/7 Nation. Your permissions can be changed or withdrawn by the organisation owner.</p></div>
-        <section class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">YOUR AUTHORISED ACCESS</p><h2>Role & departments</h2></div><span class="verified">VERIFIED</span></div>
-          <div id="accessList" class="access-list"></div>
+        <section id="overviewView">
+          <div class="notice"><b>YOUR ACCESS IS VERIFIED</b><p>Your workspace below is based on active role assignments recorded by 24/7 Nation. Your permissions can be changed or withdrawn by the organisation owner.</p></div>
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">YOUR AUTHORISED ACCESS</p><h2>Role & departments</h2></div><span class="verified">VERIFIED</span></div>
+            <div id="accessList" class="access-list"></div>
+          </section>
+          <section class="panel notice-panel" id="otherToolsNotice">
+            <p class="eyebrow">WORKSPACE STATUS</p>
+            <h2>Some department tools are still being connected</h2>
+            <p>Your assigned departments are available in the menu. A department's working tools will appear only when they have been built and connected securely.</p>
+          </section>
         </section>
+        <section class="panel department-view" id="departmentView" hidden></section>
         <section class="panel newsroom-panel" id="newsroomPanel" hidden>
           <div class="panel-heading">
             <div><p class="eyebrow">GLOBAL MEDIA · EDITORIAL DESK</p><h2>Newsroom</h2></div>
@@ -89,12 +108,8 @@
           <div class="stories-heading"><h3>Editorial queue</h3><span id="storyCount" class="active-tag">0 STORIES</span></div>
           <div id="storiesList" class="stories-list"><p class="scope-empty">Loading newsroom…</p></div>
         </section>
-        <section class="panel notice-panel" id="otherToolsNotice">
-          <p class="eyebrow">WORKSPACE STATUS</p>
-          <h2>Other department tools are being connected</h2>
-          <p>Artist management, production tools, member records and other operational actions will appear only after their individual permission checks and audit controls are completed.</p>
-        </section>
         <footer>© <span id="year"></span> 24/7 Nation Global Media · Rising A Voice For The North.</footer>
+        </div>
       </div>
     </section>
   </main>
