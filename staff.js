@@ -153,6 +153,13 @@ function resetStoryForm() {
   document.getElementById("cancelEditButton").hidden = true;
 }
 
+function getWorkspaceDisplayName(workspace) {
+  if (workspace?.roles?.includes("production_manager")) {
+    return "Maidammanation Production 🎬";
+  }
+  return workspace?.name || "Department Workspace";
+}
+
 function renderStaffNavigation(workspaces) {
   const nav = document.getElementById("staffNavigation");
   const items = [
@@ -160,7 +167,7 @@ function renderStaffNavigation(workspaces) {
   ];
   for (const workspace of workspaces) {
     items.push(
-      `<button class="nav-item" type="button" data-view="department" data-department="${escapeHtml(workspace.departmentCode)}"><span class="nav-icon">▣</span><span class="nav-copy">${escapeHtml(workspace.name)}</span></button>`
+      `<button class="nav-item" type="button" data-view="department" data-department="${escapeHtml(workspace.departmentCode)}"><span class="nav-icon">▣</span><span class="nav-copy">${escapeHtml(getWorkspaceDisplayName(workspace))}</span></button>`
     );
     if (workspace.departmentCode === "global_media" && workspace.permissions.includes("content.view")) {
       items.push(
@@ -192,7 +199,7 @@ function showStaffView(view, departmentCode = "") {
       const newsroomAvailable = workspace.departmentCode === "global_media" && workspace.permissions.includes("content.view");
       department.innerHTML = `
         <p class="eyebrow">AUTHORISED DEPARTMENT WORKSPACE</p>
-        <h2>${escapeHtml(workspace.name)}</h2>
+        <h2>${escapeHtml(getWorkspaceDisplayName(workspace))}</h2>
         <p class="department-copy">Your access to this department has been verified by 24/7 Nation.</p>
         <div class="department-status"><span class="status-indicator"></span><span>ACCESS ACTIVE</span></div>
         <div class="department-details">
@@ -263,7 +270,7 @@ async function loadStaffWorkspace(user) {
     return `
       <article class="access-card">
         <div class="role-line">
-          <b>${escapeHtml(workspace.name)}</b>
+          <b>${escapeHtml(getWorkspaceDisplayName(workspace))}</b>
           <span class="active-tag">AUTHORISED</span>
         </div>
         <p class="eyebrow">YOUR ROLE</p>
